@@ -4,7 +4,7 @@
 
 /**
  * @name DataLayerClusterer for Google Maps v3
- * @version version 0.7
+ * @version version 0.7.1
  * @author Nelson Antunes
  *
  * The library creates and manages per-zoom-level clusters for large amounts of
@@ -470,7 +470,9 @@ DataLayerClusterer.prototype.onAdd = function() {
         this.onRemove();
     }
 
-    if (map !== null) {
+    this.map_ = map;
+
+    if (this.map_ !== null) {
         this._data_layer.setMap(this.map_);
 
         this.prevZoom_ = this.map_.getZoom();
