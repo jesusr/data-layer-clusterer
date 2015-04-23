@@ -1,0 +1,27 @@
+{
+  "name": "data-layer-clusterer",
+  "version": "0.7.0",
+  "homepage": "https://github.com/nantunes/data-layer-clusterer",
+  "authors": [
+    "Nelson Antunes"
+  ],
+  "description": "The library creates and manages per-zoom-level clusters large amounts of data layer features. Google API v3.",
+  "main": "src/datalayerclusterer.js",
+  "keywords": [
+    "google",
+    "maps",
+    "data",
+    "layer",
+    "marker",
+    "cluster",
+    "clusterer",
+    "javascript",
+    "js",
+    "api",
+    "v3"
+  ],
+  "license": "Apache 2.0",
+  "ignore": [
+    "**/.*"
+  ]
+}
