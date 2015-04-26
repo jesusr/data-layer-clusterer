@@ -1,7 +1,7 @@
 Data Layer Clusterer – A Google Maps JavaScript API utility library
 ==============
 
-A Google Maps JavaScript API v3 library to create and manage per-zoom-level clusters for large amounts of markers.
+A Google Maps JavaScript API v3 library to create and manage per-zoom-level clusters for large amounts of data layer features.
 
 Based on [Marker Clusterer – A Google Maps JavaScript API utility library](https://github.com/googlemaps/js-marker-clusterer) by Luke Mehe (Google Inc.).
 
