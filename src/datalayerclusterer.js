@@ -2,6 +2,13 @@
 /* exports DataLayerClusterer */
 'use strict';
 
+
+/**
+ * @name DataLayerClusterer for Google Maps v3
+ * @version version 0.7.3
+ * @author Nelson Antunes; clean and corrections Jesús R Peinado jesusrpeinado@gmail.com
+ */
+
 /**
  * @name DataLayerClusterer for Google Maps v3
  * @version version 0.7.2
@@ -33,7 +40,7 @@
  *
  * @param {google.maps.Map} map The Google map to attach to.
  * @param {Object=} opt_options support the following options:
- *	   'map': (google.maps.Map) The Google map to attach to.
+ *     'map': (google.maps.Map) The Google map to attach to.
  *     'gridSize': (number) The grid size of a cluster in pixels.
  *     'maxZoom': (number) The maximum zoom level that a feature can be part of a
  *                cluster.
@@ -104,8 +111,8 @@ function DataLayerClusterer(opt_options) {
     this._data_layer = new google.maps.Data();
     this._data_layer.setStyle(DataLayerClusterer.HIDDEN_FEATURE);
 
-    if(map !== null) {
-	    this.setMap(this.map_);
+    if (map !== null) {
+        this.setMap(this.map_);
     }
 }
 
@@ -409,7 +416,7 @@ DataLayerClusterer.prototype.addToClosestCluster_ = function(feature) {
 
     var pos = feature.getGeometry().get();
 
-	var cluster;
+    var cluster;
 
     var c_size = this.clusters_.length;
     for (var i = 0; i !== c_size; ++i) {
@@ -584,7 +591,7 @@ FeatureCluster.prototype.isFeatureAlreadyAdded = function(feature) {
     if (this.features_.indexOf) {
         return this.features_.indexOf(feature) !== -1;
     } else {
-    	var f_size = this.features_.length;
+        var f_size = this.features_.length;
         for (var i = 0; i !== f_size; ++i) {
             if (this.features_[i] === feature) {
                 return true;
@@ -660,7 +667,7 @@ FeatureCluster.prototype.getDataLayerClusterer = function() {
 FeatureCluster.prototype.getBounds = function() {
     var bounds = new google.maps.LatLngBounds(this.center_, this.center_);
 
-	var f_size = this.features_.length;
+    var f_size = this.features_.length;
     for (var i = 0; i !== f_size; ++i) {
         bounds.extend(this.features_[i].getGeometry().get());
     }
@@ -743,8 +750,8 @@ FeatureCluster.prototype.updateIcon = function() {
 
     if (mz && zoom > mz) {
         // The zoom is greater than our max zoom so show all the features in cluster.
-		var f_size = this.features_.length;
-	    for (var i = 0; i !== f_size; ++i) {
+        var f_size = this.features_.length;
+        for (var i = 0; i !== f_size; ++i) {
             this.featureClusterer_.overrideStyle(this.features_[i], DataLayerClusterer.VISIBLE_FEATURE);
         }
 
