@@ -58,32 +58,25 @@
 function DataLayerClusterer(optOptions) {
   DataLayerClusterer.extend(DataLayerClusterer, google.maps.OverlayView);
   var options = optOptions || {};
-
-  this.clusters_ = [];
-  this.sizes = [53, 56, 66, 78, 90];
-  this.styles_ = [];
-  this.ready_ = false;
-  this.map = options.map || null;
-  this.gridSize_ = options.gridSize || 60;
-  this.minClusterSize_ = options.minimumClusterSize || 2;
-  this.maxZoom_ = options.maxZoom || null;
-  this.className_ = options.className || 'cluster';
-  this.styles_ = options.styles || [];
-  this.imagePath_ = options.imagePath || DataLayerClusterer.MARKER_CLUSTER_IMAGE_PATH_;
-  this.imageExtension_ = options.imageExtension || DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_;
-  this.zoomOnClick_ = true;
-  if (options.zoomOnClick !== undefined) {
-    this.zoomOnClick_ = options.zoomOnClick;
-  }
-  this.averageCenter_ = true;
-  if (options.averageCenter !== undefined) {
-    this.averageCenter_ = options.averageCenter;
-  }
-
+  DataLayerClusterer.extend(DataLayerClusterer, {
+    clusters_: [],
+    sizes: [53, 56, 66, 78, 90],
+    styles_: [],
+    ready_: false,
+    map: options.map || null,
+    gridSize_: options.gridSize || 60,
+    minClusterSize_: options.minimumClusterSize || 2,
+    maxZoom_: options.maxZoom || null,
+    className_: options.className || 'cluster',
+    styles_: options.styles || [],
+    imagePath_: options.imagePath || DataLayerClusterer.MARKER_CLUSTER_IMAGE_PATH_,
+    imageExtension_: options.imageExtension || DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_,
+    zoomOnClick_: options.zoomOnClick !== undefined ? options.zoomOnClick : true,
+    averageCenter_: options.averageCenter !== undefined ? options.averageCenter : true,
+    _dataLayer: new google.maps.Data()
+  });
   this.setupStyles_();
-  this._dataLayer = new google.maps.Data();
   this._dataLayer.setStyle(DataLayerClusterer.HIDDEN_FEATURE);
-
   if (this.map !== null) {
     this.setMap(this.map);
   }
@@ -99,11 +92,14 @@ DataLayerClusterer.HIDDEN_FEATURE = {
   visible: false
 };
 
-
-
-
 /* ---- Public methods ---- */
 
+/**
+ * Set the visibility of the entire data layer.
+ *
+ * @param {bool} v
+ * @return {void}
+ */
 DataLayerClusterer.prototype.setVisible = function(v) {
   if (!v) {
     this.map__ = this.getMap();
@@ -1103,4 +1099,5 @@ DataLayerClusterer.prototype.calculator_ = function(features, numStyles) {
   };
 };
 
+// Class exposure
 window.DataLayerClusterer = DataLayerClusterer;
