@@ -61,7 +61,6 @@ function DataLayerClusterer(optOptions) {
   DataLayerClusterer.extend(DataLayerClusterer, {
     clusters_: [],
     sizes: [53, 56, 66, 78, 90],
-    styles_: [],
     ready_: false,
     map: options.map || null,
     gridSize_: options.gridSize || 60,
