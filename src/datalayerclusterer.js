@@ -1058,7 +1058,6 @@ FeatureClusterIcon.prototype.setSums = function(sums) {
 /* ---- To remove soon ---- */
 /*
  * TODO: Allow the styling using a similar interface than google.map.Data.
- *       Use SVG icon by default, remove dependency of google-maps-utility-library-v3.googlecode.com.
  */
 
 /**
