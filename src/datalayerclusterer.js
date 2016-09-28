@@ -58,22 +58,22 @@
 function DataLayerClusterer(optOptions) {
   DataLayerClusterer.extend(DataLayerClusterer, google.maps.OverlayView);
   var options = optOptions || {};
-  DataLayerClusterer.extend(DataLayerClusterer, {
-    clusters_: [],
-    sizes: [53, 56, 66, 78, 90],
-    ready_: false,
-    map: options.map || null,
-    gridSize_: options.gridSize || 60,
-    minClusterSize_: options.minimumClusterSize || 2,
-    maxZoom_: options.maxZoom || null,
-    className_: options.className || 'cluster',
-    styles_: options.styles || [],
-    imagePath_: options.imagePath || DataLayerClusterer.MARKER_CLUSTER_IMAGE_PATH_,
-    imageExtension_: options.imageExtension || DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_,
-    zoomOnClick_: options.zoomOnClick !== undefined ? options.zoomOnClick : true,
-    averageCenter_: options.averageCenter !== undefined ? options.averageCenter : true,
-    _dataLayer: new google.maps.Data()
-  });
+
+  this.clusters_ = [];
+  this.sizes = [53, 56, 66, 78, 90];
+  this.ready_ = false;
+  this.map = options.map || null;
+  this.gridSize_ = options.gridSize || 60;
+  this.minClusterSize_ = options.minimumClusterSize || 2;
+  this.maxZoom_ = options.maxZoom || null;
+  this.className_ = options.className || 'cluster';
+  this.styles_ = options.styles || [];
+  this.imagePath_ = options.imagePath || DataLayerClusterer.MARKER_CLUSTER_IMAGE_PATH_;
+  this.imageExtension_ = options.imageExtension || DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_;
+  this.zoomOnClick_ = options.zoomOnClick !== undefined ? options.zoomOnClick : true;
+  this.averageCenter_ = options.averageCenter !== undefined ? options.averageCenter : true;
+  this._dataLayer = new google.maps.Data();
+  
   this.setupStyles_();
   this._dataLayer.setStyle(DataLayerClusterer.HIDDEN_FEATURE);
   if (this.map !== null) {
