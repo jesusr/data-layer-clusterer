@@ -57,6 +57,10 @@
  */
 function DataLayerClusterer(optOptions) {
   DataLayerClusterer.extend(DataLayerClusterer, google.maps.OverlayView);
+  this.addListener = function(type, callback) {
+    return this._dataLayer.addListener(type, callback);
+  };
+
   var options = optOptions || {};
 
   this.clusters_ = [];
