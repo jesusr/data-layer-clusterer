@@ -1067,7 +1067,7 @@ FeatureClusterIcon.prototype.setSums = function(sums) {
  * @type {string}
  */
 DataLayerClusterer.MARKER_CLUSTER_IMAGE_PATH_ =
-  'img/markercluster/m';
+  'https://cdn.rawgit.com/Connum/data-layer-clusterer/master/images/m';
 DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_ = document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#Image", "1.1") ? 'svg' : 'png';
 
 /**
