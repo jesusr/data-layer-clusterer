@@ -1067,8 +1067,8 @@ FeatureClusterIcon.prototype.setSums = function(sums) {
  * @type {string}
  */
 DataLayerClusterer.MARKER_CLUSTER_IMAGE_PATH_ =
-  'https://raw.githubusercontent.com/googlemaps/v3-utility-library/master/markerclustererplus/images/m';
-DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_ = 'png';
+  'img/markercluster/m';
+DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_ = document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#Image", "1.1") ? 'svg' : 'png';
 
 /**
  * Sets up the styles object.
