@@ -367,7 +367,19 @@ DataLayerClusterer.prototype.setReady_ = function(ready) {
  * @private
  */
 DataLayerClusterer.prototype.isFeatureInBounds_ = function(f, bounds) {
-  return bounds.contains(f.getGeometry().get());
+  var geom = f.getGeometry(),
+      inBounds = false;
+
+  if (geom.getType() == 'Point') {
+    inBounds = bounds.contains(geom.get());
+  } else {
+    geom.getArray().forEach(function(g) {
+      inBounds = bounds.contains(g);
+      return !inBounds;
+    });
+  }
+
+  return inBounds;
 };
 
 /**
@@ -396,6 +408,48 @@ DataLayerClusterer.prototype.distanceBetweenPoints_ = function(p1, p2) {
 };
 
 /**
+ * Calculates the bounds of a feature
+ *
+ * @private
+ */
+DataLayerClusterer.prototype.featureBounds_ = function(feature, extendBounds) {
+  var geom = feature.getGeometry(),
+      geom_bounds = extendBounds || new google.maps.LatLngBounds();
+
+    if (geom.getType() == 'Point') {
+      geom_bounds.extend(geom.get());
+    } else {
+      geom.getArray().forEach(function(latLng){
+      geom_bounds.extend(latLng);
+      /*console.log(geom.getType());
+      console.log(latLng);*/
+         //iterate over the points in the path
+         /*path.getArray().forEach(function(latLng){
+
+           //extend the bounds
+           
+         });*/
+      });
+    }
+    
+  return geom_bounds;
+};
+
+/**
+ * Calculates the center point of the bounds of a feature
+ *
+ * @private
+ */
+DataLayerClusterer.prototype.featureCenter_ = function(feature) {
+  var geom = feature.getGeometry();
+  if (geom.getType() == 'Point') {
+    return geom.get();
+  }
+
+  return this.featureBounds_(feature).getCenter();
+};
+
+/**
  * Add a feature to a cluster, or creates a new cluster.
  *
  * @param {google.maps.Data.Feature} feature The feature to add.
@@ -404,8 +458,7 @@ DataLayerClusterer.prototype.distanceBetweenPoints_ = function(p1, p2) {
 DataLayerClusterer.prototype.addToClosestCluster_ = function(feature) {
   var distance = 40000; // Some large number
 
-  var pos = feature.getGeometry().get();
-
+  var pos = this.featureCenter_(feature);
   var cluster;
 
   var csize = this.clusters_.length;
@@ -608,14 +661,16 @@ FeatureCluster.prototype.addFeature = function(feature) {
     return false;
   }
 
+  var geom = feature.getGeometry(), centerPoint = this.featureClusterer_.featureCenter_(feature);
+
   if (!this.center_) {
-    this.center_ = feature.getGeometry().get();
+    this.center_ = centerPoint;
     this.calculateBounds_();
   } else {
     if (this.averageCenter_) {
       var l = this.features_.length + 1;
-      var lat = (this.center_.lat() * (l - 1) + feature.getGeometry().get().lat()) / l;
-      var lng = (this.center_.lng() * (l - 1) + feature.getGeometry().get().lng()) / l;
+      var lat = (this.center_.lat() * (l - 1) + centerPoint.lat()) / l;
+      var lng = (this.center_.lng() * (l - 1) + centerPoint.lng()) / l;
       this.center_ = new google.maps.LatLng(lat, lng);
       this.calculateBounds_();
     }
@@ -665,7 +720,7 @@ FeatureCluster.prototype.getBounds = function() {
 
   var fsize = this.features_.length;
   for (var i = 0; i !== fsize; ++i) {
-    bounds.extend(this.features_[i].getGeometry().get());
+    bounds = DataLayerClusterer.prototype.featureBounds_(this.features_[i], bounds);
   }
 
   return bounds;
@@ -725,7 +780,7 @@ FeatureCluster.prototype.calculateBounds_ = function() {
  * @return {boolean} True if the feature lies in the bounds.
  */
 FeatureCluster.prototype.isFeatureInClusterBounds = function(feature) {
-  return this.bounds_.contains(feature.getGeometry().get());
+  return this.bounds_.contains(this.featureClusterer_.featureCenter_(feature));
 };
 
 /**
