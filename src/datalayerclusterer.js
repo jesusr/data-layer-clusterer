@@ -377,8 +377,13 @@ DataLayerClusterer.prototype.isFeatureInBounds_ = function(f, bounds) {
   if (geom.getType() == 'Point') {
     inBounds = bounds.contains(geom.get());
   } else {
+    var self = this;
     geom.getArray().forEach(function(g) {
-      inBounds = bounds.contains(g);
+      if (g instanceof google.maps.LatLng) {
+        inBounds = bounds.contains(g);
+      } else {
+        inBounds = bounds.contains(self.featureCenter_(g));
+      }
       return !inBounds;
     });
   }
@@ -417,22 +422,20 @@ DataLayerClusterer.prototype.distanceBetweenPoints_ = function(p1, p2) {
  * @private
  */
 DataLayerClusterer.prototype.featureBounds_ = function(feature, extendBounds) {
-  var geom = feature.getGeometry(),
+  var geom = feature.getGeometry ? feature.getGeometry() : feature,
       geom_bounds = extendBounds || new google.maps.LatLngBounds();
 
     if (geom.getType() == 'Point') {
       geom_bounds.extend(geom.get());
     } else {
-      geom.getArray().forEach(function(latLng){
-      geom_bounds.extend(latLng);
-      /*console.log(geom.getType());
-      console.log(latLng);*/
-         //iterate over the points in the path
-         /*path.getArray().forEach(function(latLng){
-
-           //extend the bounds
-           
-         });*/
+      geom.getArray().forEach(function(g){
+        if (g instanceof google.maps.LatLng) {
+          geom_bounds.extend(g);
+        } else {
+          g.getArray().forEach(function(LatLng) {
+            geom_bounds.extend(LatLng);
+          });
+        }
       });
     }
     
@@ -445,12 +448,12 @@ DataLayerClusterer.prototype.featureBounds_ = function(feature, extendBounds) {
  * @private
  */
 DataLayerClusterer.prototype.featureCenter_ = function(feature) {
-  var geom = feature.getGeometry();
+  var geom = feature.getGeometry ? feature.getGeometry() : feature;
   if (geom.getType() == 'Point') {
     return geom.get();
+  } else {
+    return this.featureBounds_(feature).getCenter();
   }
-
-  return this.featureBounds_(feature).getCenter();
 };
 
 /**
