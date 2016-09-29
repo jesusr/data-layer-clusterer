@@ -18,6 +18,8 @@ After a day of working on it, the current implementation now includes the follow
 - Added SVG versions of the marker images which will be used by default if supported by the browser and falls back to the PNG versions
 - LineStrings and Polygons are being clustered as well, using the center point of their bounding rectangles
 
+To read more and view a working example, see my blog post at www.constantinmedia.com/2016/09/google-maps-javascript-api-v3-handling-large-amounts-of-features-using-clustering-in-data-layers/
+
 ## More to come
 - Cluster LineStrings and Polygons not only based on their bounding rectangle center points, but also if they are becoming too small according to a threshold value in pixels for either width or height
 
