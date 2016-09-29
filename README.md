@@ -13,10 +13,11 @@ While working with the data layer feature was fun because of the simplicity of a
 
 Seeing that there hadn't been any work done on the project for almost a year, I tried out jesusr's fork, which included some fixes/optimizations, but out-of-the-box it would just throw JS errors in the console. After forking it and getting it to work, I had to find out that just like the version in the initial repo, there was no support for LineStrings or Polygons, which I needed. Also, the URL to the cluster marker icons was no longer valid, so that had to be fixed as well, and so I did.
 
-After a day of working on it, the current implementation now includes the following changes:
+My current implementation now includes the following changes:
 - Fixed cluster marker image URLs
 - Added SVG versions of the marker images which will be used by default if supported by the browser and falls back to the PNG versions
 - LineStrings and Polygons are being clustered as well, using the center point of their bounding rectangles
+- new option 'setProperty': If set to true, instead of changing the StyleOption attribute 'visible' of the features directly, a boolean property 'in_cluster' is set on the features, which can then be used to toggle visibility (for example in order to take into account other properties for additonal filtering)
 
 To read more and view a working example, see my blog post at www.constantinmedia.com/2016/09/google-maps-javascript-api-v3-handling-large-amounts-of-features-using-clustering-in-data-layers/
 
