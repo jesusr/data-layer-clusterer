@@ -45,10 +45,12 @@
  *                           cluster before the features are hidden and a count
  *                           is shown.
  *     'setProperty': (boolean) when true, the features will not be hidden, but
- *                    the property 'in_cluster' will be set to a boolean value,
- *                    indicating whether the feature is currently being clustered or not
- *                    This allows to handle hiding/showing manually, taking other factors
- *                    (like filtering) into account.
+ *                    the property 'in_cluster' (or a configurable property name defined
+ *                    in the constant DataLayerClusterer.CLUSTER_PROPERTY_NAME)
+ *                    will be set to a boolean value, indicating whether the feature is
+ *                    currently being clustered or not. This allows to handle
+ *                    hiding/showing manually, taking other factors (like filtering)
+ *                    into account.
  *     'styles': (object) An object that has style properties:
  *       'url': (string) The image url.
  *       'height': (number) The image height.
@@ -98,6 +100,8 @@ function DataLayerClusterer(optOptions) {
 }
 
 /* ---- Constants ---- */
+
+DataLayerClusterer.CLUSTER_PROPERTY_NAME = 'in_cluster';
 
 DataLayerClusterer.VISIBLE_FEATURE = {
   visible: true
@@ -697,7 +701,7 @@ FeatureCluster.prototype.addFeature = function(feature) {
   if (len < this.minClusterSize_) {
     // Min cluster size not reached so show the feature.
     if (this.featureClusterer_.setProperty_) {
-      feature.setProperty('in_cluster', false);
+      feature.setProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME, false);
     } else {
       this.featureClusterer_.overrideStyle(feature, DataLayerClusterer.VISIBLE_FEATURE);
     }
@@ -707,7 +711,7 @@ FeatureCluster.prototype.addFeature = function(feature) {
     // Hide the features that were showing.
     for (var i = 0; i < len; i++) {
       if (this.featureClusterer_.setProperty_) {
-        this.features_[i].setProperty('in_cluster', true);
+        this.features_[i].setProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME, true);
       } else {
         this.featureClusterer_.overrideStyle(this.features_[i], DataLayerClusterer.HIDDEN_FEATURE);
       }
@@ -717,7 +721,7 @@ FeatureCluster.prototype.addFeature = function(feature) {
   if (len >= this.minClusterSize_) {
     for (var j = 0; j < len; j++) {
       if (this.featureClusterer_.setProperty_) {
-        this.features_[j].setProperty('in_cluster', true);
+        this.features_[j].setProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME, true);
       } else {
         this.featureClusterer_.overrideStyle(this.features_[j], DataLayerClusterer.HIDDEN_FEATURE);
       }
@@ -831,7 +835,7 @@ FeatureCluster.prototype.updateIcon = function() {
     var fsize = this.features_.length;
     for (var i = 0; i !== fsize; ++i) {
       if (this.featureClusterer_.setProperty_) {
-        this.features_[i].setProperty('in_cluster', false);
+        this.features_[i].setProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME, false);
       } else {
         this.featureClusterer_.overrideStyle(this.features_[i], DataLayerClusterer.VISIBLE_FEATURE);
       }
