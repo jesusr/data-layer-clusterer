@@ -44,6 +44,11 @@
  *     'minimumClusterSize': (number) The minimum number of features to be in a
  *                           cluster before the features are hidden and a count
  *                           is shown.
+ *     'setProperty': (boolean) when true, the features will not be hidden, but
+ *                    the property 'in_cluster' will be set to a boolean value,
+ *                    indicating whether the feature is currently being clustered or not
+ *                    This allows to handle hiding/showing manually, taking other factors
+ *                    (like filtering) into account.
  *     'styles': (object) An object that has style properties:
  *       'url': (string) The image url.
  *       'height': (number) The image height.
@@ -69,6 +74,7 @@ function DataLayerClusterer(optOptions) {
   this.map = options.map || null;
   this.gridSize_ = options.gridSize || 60;
   this.minClusterSize_ = options.minimumClusterSize || 2;
+  this.setProperty_ = options.setProperty || false;
   this.maxZoom_ = options.maxZoom || null;
   this.className_ = options.className || 'cluster';
   this.styles_ = options.styles || [];
@@ -79,7 +85,13 @@ function DataLayerClusterer(optOptions) {
   this._dataLayer = new google.maps.Data();
   
   this.setupStyles_();
-  this._dataLayer.setStyle(DataLayerClusterer.HIDDEN_FEATURE);
+  if (this.setProperty_) {
+    this._dataLayer.forEach(function(feature) {
+      feature.setProperty('in_cluster', true);
+    });
+  } else {
+    this._dataLayer.setStyle(DataLayerClusterer.HIDDEN_FEATURE);
+  }
   if (this.map !== null) {
     this.setMap(this.map);
   }
@@ -684,19 +696,31 @@ FeatureCluster.prototype.addFeature = function(feature) {
   var len = this.features_.length;
   if (len < this.minClusterSize_) {
     // Min cluster size not reached so show the feature.
-    this.featureClusterer_.overrideStyle(feature, DataLayerClusterer.VISIBLE_FEATURE);
+    if (this.featureClusterer_.setProperty_) {
+      feature.setProperty('in_cluster', false);
+    } else {
+      this.featureClusterer_.overrideStyle(feature, DataLayerClusterer.VISIBLE_FEATURE);
+    }
   }
 
   if (len === this.minClusterSize_) {
     // Hide the features that were showing.
     for (var i = 0; i < len; i++) {
-      this.featureClusterer_.overrideStyle(this.features_[i], DataLayerClusterer.HIDDEN_FEATURE);
+      if (this.featureClusterer_.setProperty_) {
+        this.features_[i].setProperty('in_cluster', true);
+      } else {
+        this.featureClusterer_.overrideStyle(this.features_[i], DataLayerClusterer.HIDDEN_FEATURE);
+      }
     }
   }
 
   if (len >= this.minClusterSize_) {
     for (var j = 0; j < len; j++) {
-      this.featureClusterer_.overrideStyle(this.features_[j], DataLayerClusterer.HIDDEN_FEATURE);
+      if (this.featureClusterer_.setProperty_) {
+        this.features_[j].setProperty('in_cluster', true);
+      } else {
+        this.featureClusterer_.overrideStyle(this.features_[j], DataLayerClusterer.HIDDEN_FEATURE);
+      }
     }
   }
 
@@ -806,7 +830,11 @@ FeatureCluster.prototype.updateIcon = function() {
     // The zoom is greater than our max zoom so show all the features in cluster.
     var fsize = this.features_.length;
     for (var i = 0; i !== fsize; ++i) {
-      this.featureClusterer_.overrideStyle(this.features_[i], DataLayerClusterer.VISIBLE_FEATURE);
+      if (this.featureClusterer_.setProperty_) {
+        this.features_[i].setProperty('in_cluster', false);
+      } else {
+        this.featureClusterer_.overrideStyle(this.features_[i], DataLayerClusterer.VISIBLE_FEATURE);
+      }
     }
 
     return;
