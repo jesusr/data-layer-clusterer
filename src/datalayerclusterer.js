@@ -379,11 +379,7 @@ DataLayerClusterer.prototype.isFeatureInBounds_ = function(f, bounds) {
   } else {
     var self = this;
     geom.getArray().forEach(function(g) {
-      if (g instanceof google.maps.LatLng) {
-        inBounds = bounds.contains(g);
-      } else {
-        inBounds = bounds.contains(self.featureCenter_(g));
-      }
+      inBounds = g instanceof google.maps.LatLng ? bounds.contains(g) : bounds.contains(self.featureCenter_(g));
       return !inBounds;
     });
   }
