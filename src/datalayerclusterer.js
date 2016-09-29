@@ -724,7 +724,7 @@ FeatureCluster.prototype.getBounds = function() {
 
   var fsize = this.features_.length;
   for (var i = 0; i !== fsize; ++i) {
-    bounds = DataLayerClusterer.prototype.featureBounds_(this.features_[i], bounds);
+    bounds = this.featureClusterer_.featureBounds_(this.features_[i], bounds);
   }
 
   return bounds;
