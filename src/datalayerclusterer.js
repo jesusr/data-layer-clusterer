@@ -93,7 +93,7 @@ function DataLayerClusterer(optOptions) {
   this.averageCenter_ = options.averageCenter !== undefined ? options.averageCenter : true;
   this._dataLayer = new google.maps.Data();
   this.firstIdle_ = true;
-  this.recolorSVG_ = options.recolorSvg || 'g:first-child';
+  this.recolorSVG_ = typeof options.recolorSVG !== "undefined" && (typeof options.recolorSVG === "string" || options.recolorSVG instanceof String || options.recolorSVG === false) ? options.recolorSVG : 'g:first-child';
   this.baseSVG_ = null;
   
   this.setupStyles_();
