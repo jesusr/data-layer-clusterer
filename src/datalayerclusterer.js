@@ -85,6 +85,7 @@ function DataLayerClusterer(optOptions) {
   this.zoomOnClick_ = options.zoomOnClick !== undefined ? options.zoomOnClick : true;
   this.averageCenter_ = options.averageCenter !== undefined ? options.averageCenter : true;
   this._dataLayer = new google.maps.Data();
+  this.firstIdle_ = true;
   
   this.setupStyles_();
   if (this.setProperty_) {
@@ -558,11 +559,13 @@ DataLayerClusterer.prototype.onAdd = function() {
     });
 
     this._idle = google.maps.event.addListener(this.map_, 'idle', function() {
-      self.redraw();
+      if (!self.firstIdle_) {
+        self.redraw();
+      }
+      self.firstIdle_ = false;
     });
 
     this.setReady_(true);
-    this.redraw();
   } else {
     this.setReady_(false);
   }
