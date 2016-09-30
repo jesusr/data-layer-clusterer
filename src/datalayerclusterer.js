@@ -96,18 +96,32 @@ function DataLayerClusterer(optOptions) {
   this.recolorSVG_ = typeof options.recolorSVG !== "undefined" && (typeof options.recolorSVG === "string" || options.recolorSVG instanceof String || options.recolorSVG === false) ? options.recolorSVG : 'g:first-child';
   this.baseSVG_ = null;
   
-  this.setupStyles_();
+  if (this.recolorSVG_ && this.imageExtension_ == 'svg') {
+    var self = this,
+    xhr = new XMLHttpRequest();
+    xhr.open("GET",/\.svg$/.test(this.imagePath_) ? this.imagePath_ : this.imagePath_ + '1.' + this.imageExtension_);
+    // Following line is just to be on the safe side;
+    // not needed if your server delivers SVG with correct MIME type
+    xhr.overrideMimeType("image/svg+xml");
+    xhr.send("");
 
-  if (this.setProperty_) {
-    this._dataLayer.forEach(function(feature) {
-      feature.setProperty('in_cluster', true);
-    });
-  } else {
-    this._dataLayer.setStyle(DataLayerClusterer.HIDDEN_FEATURE);
-  }
-  if (this.map !== null) {
-    this.setMap(this.map);
-  }
+    xhr.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            if (this.status == 200) {
+              self.baseSVG_ = {
+                'document': xhr.responseXML.documentElement,
+                'colorElement': xhr.responseXML.documentElement.querySelector(self.recolorSVG_)
+              };
+              if (!self.baseSVG_.document || !self.baseSVG_.colorElement) {
+                self.recolorSVG_ = false;
+              }
+            } else {
+              self.recolorSVG_ = false;
+            }
+            self.init_();
+        }
+    };
+  } else this.init_();
 }
 
 /* ---- Constants ---- */
@@ -1134,6 +1148,27 @@ DataLayerClusterer.MARKER_CLUSTER_IMAGE_PATH_ =
   'https://cdn.rawgit.com/Connum/data-layer-clusterer/master/images/m';
 DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_ = document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#Image", "1.1") ? 'svg' : 'png';
 
+
+/**
+ * Initialises the clustering when everything is ready
+ *
+ * @private
+ */
+DataLayerClusterer.prototype.init_ = function() {
+  this.setupStyles_();
+
+  if (this.setProperty_) {
+    this._dataLayer.forEach(function(feature) {
+      feature.setProperty('in_cluster', true);
+    });
+  } else {
+    this._dataLayer.setStyle(DataLayerClusterer.HIDDEN_FEATURE);
+  }
+  if (this.map !== null) {
+    this.setMap(this.map);
+  }
+}
+
 /**
  * Sets up the styles object.
  *
@@ -1141,34 +1176,6 @@ DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_ = document.implementation.has
  */
 DataLayerClusterer.prototype.setupStyles_ = function() {
   if (this.styles_.length) {
-    return;
-  }
-
-  if (!this.baseSVG_ && this.recolorSVG_ && this.imageExtension_ == 'svg') {
-    var self = this,
-    xhr = new XMLHttpRequest();
-    xhr.open("GET",/\.svg$/.test(this.imagePath_) ? this.imagePath_ : this.imagePath_ + '1.' + this.imageExtension_);
-    // Following line is just to be on the safe side;
-    // not needed if your server delivers SVG with correct MIME type
-    xhr.overrideMimeType("image/svg+xml");
-    xhr.send("");
-
-    xhr.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            if (this.status == 200) {
-              self.baseSVG_ = {
-                'document': xhr.responseXML.documentElement,
-                'colorElement': xhr.responseXML.documentElement.querySelector(self.recolorSVG_)
-              };
-              if (!self.baseSVG_.document || !self.baseSVG_.colorElement) {
-                self.recolorSVG_ = false;
-              }
-            } else {
-              self.recolorSVG_ = false;
-            }
-            self.setupStyles_();
-        }
-    };
     return;
   }
 
