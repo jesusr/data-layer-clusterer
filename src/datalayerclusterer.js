@@ -35,7 +35,7 @@
  *
  * @param {google.maps.Map} map The Google map to attach to.
  * @param {Object=} optOptions support the following options:
- *       'map': (google.maps.Map) The Google map to attach to.
+ *     'map': (google.maps.Map) The Google map to attach to.
  *     'gridSize': (number) The grid size of a cluster in pixels.
  *     'maxZoom': (number) The maximum zoom level that a feature can be part of a
  *                cluster.
@@ -53,6 +53,10 @@
  *                    currently being clustered or not. This allows to handle
  *                    hiding/showing manually, taking other factors (like filtering)
  *                    into account.
+ *     'recolorSvg': (string) only takes action if SVG is being used:
+ *                   a selector for an SVG element in the set imagePath that can be used
+ *                   for re-coloring the cluster marker image. This saves requests and
+ *                   prevents the different marker images popping up after loading.
  *     'styles': (object) An object that has style properties:
  *       'url': (string) The image url.
  *       'height': (number) The image height.
@@ -74,6 +78,7 @@ function DataLayerClusterer(optOptions) {
 
   this.clusters_ = [];
   this.sizes = [53, 56, 66, 78, 90];
+  this.colors = ['#008cff','#ffbf00','#ff0000','#ff00ed','#9c00ff'];
   this.ready_ = false;
   this.map = options.map || null;
   this.gridSize_ = options.gridSize || 60;
@@ -88,8 +93,11 @@ function DataLayerClusterer(optOptions) {
   this.averageCenter_ = options.averageCenter !== undefined ? options.averageCenter : true;
   this._dataLayer = new google.maps.Data();
   this.firstIdle_ = true;
+  this.recolorSVG_ = options.recolorSvg || 'g:first-child';
+  this.baseSVG_ = null;
   
   this.setupStyles_();
+
   if (this.setProperty_) {
     this._dataLayer.forEach(function(feature) {
       feature.setProperty('in_cluster', true);
@@ -1043,6 +1051,7 @@ FeatureClusterIcon.prototype.getPosFromLatLng_ = function(latlng) {
 FeatureClusterIcon.prototype.createCss = function(pos) {
   var style = [];
   style.push('background-image:url(' + this.url_ + ');');
+  if (this.cluster_.featureClusterer_.recolorSVG_) style.push('background-size: contain;');
   var backgroundPosition = this.backgroundPosition_ ? this.backgroundPosition_ : '0 0';
   style.push('background-position:' + backgroundPosition + ';');
 
@@ -1135,12 +1144,47 @@ DataLayerClusterer.prototype.setupStyles_ = function() {
     return;
   }
 
+  if (!this.baseSVG_ && this.recolorSVG_ && this.imageExtension_ == 'svg') {
+    var self = this,
+    xhr = new XMLHttpRequest();
+    xhr.open("GET",/\.svg$/.test(this.imagePath_) ? this.imagePath_ : this.imagePath_ + '1.' + this.imageExtension_);
+    // Following line is just to be on the safe side;
+    // not needed if your server delivers SVG with correct MIME type
+    xhr.overrideMimeType("image/svg+xml");
+    xhr.send("");
+
+    xhr.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            if (this.status == 200) {
+              self.baseSVG_ = {
+                'document': xhr.responseXML.documentElement,
+                'colorElement': xhr.responseXML.documentElement.querySelector(self.recolorSVG_)
+              };
+              if (!self.baseSVG_.document || !self.baseSVG_.colorElement) {
+                self.recolorSVG_ = false;
+              }
+            } else {
+              self.recolorSVG_ = false;
+            }
+            self.setupStyles_();
+        }
+    };
+    return;
+  }
+
   var ssizes = this.sizes.length;
   for (var i = 0; i !== ssizes; ++i) {
+    var thisSize = this.sizes[i],
+        thisColor = this.colors[i],
+        markerUrl = this.imagePath_ + (i + 1) + '.' + this.imageExtension_;
+    if (this.recolorSVG_) {
+      this.baseSVG_.colorElement.style.fill = thisColor;
+      markerUrl = 'data:image/svg+xml;base64,' + btoa(this.baseSVG_.document.outerHTML);
+    }
     this.styles_.push({
-      url: this.imagePath_ + (i + 1) + '.' + this.imageExtension_,
-      height: this.sizes[i],
-      width: this.sizes[i]
+      url: markerUrl,
+      height: thisSize,
+      width: thisSize
     });
   }
 };
