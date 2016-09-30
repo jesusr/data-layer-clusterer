@@ -372,8 +372,8 @@ DataLayerClusterer.prototype.resetViewport = function() {
  * @private
  */
 DataLayerClusterer.prototype.setReady_ = function(ready) {
-  if (!this.ready_) {
-    this.ready_ = ready;
+  this.ready_ = ready;
+  if (ready) {
     this.createClusters_();
   }
 };
