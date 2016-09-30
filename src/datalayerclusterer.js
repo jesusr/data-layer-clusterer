@@ -481,25 +481,37 @@ DataLayerClusterer.prototype.addToClosestCluster_ = function(feature) {
   var pos = this.featureCenter_(feature);
   var cluster;
 
-  var csize = this.clusters_.length;
-  for (var i = 0; i !== csize; ++i) {
-    var center = this.clusters_[i].getCenter();
-
-    if (center) {
-      var d = this.distanceBetweenPoints_(center, pos);
-      if (d < distance) {
-        distance = d;
-        cluster = this.clusters_[i];
-      }
-    }
+  var isVisible = true;
+  if (this.setProperty_) {
+    var propBefore = feature.getProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME);
+    feature.setProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME, false);
+    var fStyle = this.getStyle(feature);
+    if (typeof fStyle == 'function') fStyle = fStyle(feature);
+    isVisible = typeof fStyle.visible == 'undefined' || fStyle.visible;
+    feature.setProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME, propBefore);
   }
 
-  if (cluster && cluster.isFeatureInClusterBounds(feature)) {
-    cluster.addFeature(feature);
-  } else {
-    cluster = new FeatureCluster(this);
-    cluster.addFeature(feature);
-    this.clusters_.push(cluster);
+  if (isVisible) {
+    var csize = this.clusters_.length;
+    for (var i = 0; i !== csize; ++i) {
+      var center = this.clusters_[i].getCenter();
+
+      if (center) {
+        var d = this.distanceBetweenPoints_(center, pos);
+        if (d < distance) {
+          distance = d;
+          cluster = this.clusters_[i];
+        }
+      }
+    }
+
+    if (cluster && cluster.isFeatureInClusterBounds(feature)) {
+      cluster.addFeature(feature);
+    } else {
+      cluster = new FeatureCluster(this);
+      cluster.addFeature(feature);
+      this.clusters_.push(cluster);
+    }
   }
 };
 
