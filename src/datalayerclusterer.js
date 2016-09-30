@@ -3,9 +3,11 @@
 'use strict';
 
 /**
- * @name DataLayerClusterer for Google Maps v3
- * @version version 0.7.2
+ * @name DataLayerClusterer for Google Maps v3 (Connum's Fork)
+ * @version version 1.0.0
  * @author Nelson Antunes
+ * @author Jesús R Peinado
+ * @author Constantin Groß
  *
  * The library creates and manages per-zoom-level clusters for large amounts of
  * data layer features.
@@ -346,7 +348,11 @@ DataLayerClusterer.prototype.setDrawingMode = function(drawingMode) {
 };
 
 DataLayerClusterer.prototype.setStyle = function(style) {
-  return this._dataLayer.setStyle(style);
+  var returnVal = this._dataLayer.setStyle(style);
+  if (this.setProperty_) {
+    this.redraw();
+  }
+  return returnVal;
 };
 
 DataLayerClusterer.prototype.toGeoJson = function(callback) {
