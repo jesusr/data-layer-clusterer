@@ -53,7 +53,7 @@
  *                    currently being clustered or not. This allows to handle
  *                    hiding/showing manually, taking other factors (like filtering)
  *                    into account.
- *     'recolorSvg': (string) only takes action if SVG is being used:
+ *     'recolorSVG': (string) only takes action if SVG is being used:
  *                   a selector for an SVG element in the set imagePath that can be used
  *                   for re-coloring the cluster marker image. This saves requests and
  *                   prevents the different marker images popping up after loading.
