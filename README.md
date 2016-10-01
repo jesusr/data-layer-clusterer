@@ -7,6 +7,8 @@ A Google Maps JavaScript API v3 library to create and manage per-zoom-level clus
 
 Based on [Marker Clusterer – A Google Maps JavaScript API utility library](https://github.com/googlemaps/js-marker-clusterer) by Luke Mehe (Google Inc.).
 
+You can find the minified JS file [in the releases tab](https://github.com/Connum/data-layer-clusterer/releases).
+
 ## About this fork
 
 While working with the data layer feature was fun because of the simplicity of adding and getting map content via GeoJSON, I soon encountered the problem of too many markers, lines and polygons being displayed when zooming out of the map. I knew about the marker clusterer for normal layers, but it took me browsing through several StackOverflow posts and pages of search results to stumble upon nantunes' approach to data layers.
