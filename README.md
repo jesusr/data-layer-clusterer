@@ -18,6 +18,7 @@ My current implementation now includes the following changes:
 - Added SVG versions of the marker images which will be used by default if supported by the browser and falls back to the PNG versions
 - LineStrings and Polygons are being clustered as well, using the center point of their bounding rectangles
 - new option 'setProperty': If set to true, instead of changing the StyleOption attribute 'visible' of the features directly, a boolean property 'in_cluster' (or a configurable property name defined in the constant DataLayerClusterer.CLUSTER_PROPERTY_NAME) is set on the features, which can then be used to toggle visibility (for example in order to take into account other properties for additonal filtering)
+- new option 'recolorSvg': (string) only takes action if SVG is supported and being used: a selector string for an SVG element in the set imagePath that can be used for re-coloring the cluster marker image. This saves requests and prevents the different marker images popping up after loading.
 
 To read more and view a working example, see my blog post at www.constantinmedia.com/2016/09/google-maps-javascript-api-v3-handling-large-amounts-of-features-using-clustering-in-data-layers/
 
