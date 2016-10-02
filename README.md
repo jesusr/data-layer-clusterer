@@ -21,7 +21,7 @@ The options object could have the following parameters:
 | minimumClusterSize | Integer | 2 |  | false |
 | maxZoom | Integer | null |  | false |
 | className | String | 'cluster' |  | false |
-| imagePath | String | 'http://google-maps-utility-library-v3.googlecode.com/svn/trunk/markerclusterer/images/m' |  | false |
+| imagePath | String | 'google-maps-utility-library-v3. googlecode.com/svn/trunk/markerclusterer/images/m' |  | false |
 | imageExtension | String | 'png' |  | false |
 | zoomOnClick | Boolean | true |  | false |
 | averageCenter | Boolean | true |  | false |
