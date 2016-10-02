@@ -5,7 +5,7 @@
 /**
  * @name DataLayerClusterer for Google Maps v3
  * @version version 0.7.2
- * @author Nelson Antunes
+ * @author Jesús R Peinado Vergara
  *
  * The library creates and manages per-zoom-level clusters for large amounts of
  * data layer features.
@@ -117,7 +117,7 @@ DataLayerClusterer.prototype.setVisible = function (v) {
     this.setMap(this.map__);
     this._dataLayer.setMap(this.map__);
     this.onAdd();
-    this.redraw('from setvisible');
+    this.redraw();
   }
 };
 
@@ -527,10 +527,10 @@ DataLayerClusterer.prototype.onAdd = function () {
       _this.redraw();
     });
     this.setReady_(true);
-    this.redraw('from onAdd');
+    this.redraw();
   } else {
     this.setReady_(false);
-    this.redraw('from onAdd 2');
+    this.redraw();
   }
 };
 
@@ -1131,5 +1131,3 @@ DataLayerClusterer.prototype.calculator_ = function (features, numStyles) {
     index: index
   };
 };
-
-window.DataLayerClusterer = DataLayerClusterer;
