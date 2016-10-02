@@ -9,7 +9,9 @@ Based on [Data Layer Clusterer](https://github.com/nantunes/data-layer-clusterer
 
 First of all, the creation of a Data Layer Cluster starts with:
 
-scope.empresaCluster = new DataLayerClusterer(options);
+```javascript
+var empresaCluster = new DataLayerClusterer(options);
+```
 
 The options object could have the following parameters:
 
@@ -26,7 +28,7 @@ The options object could have the following parameters:
 | zoomOnClick | Boolean | true |  | false |
 | averageCenter | Boolean | true |  | false |
 
-  - * 1. Url http://google-maps-utility-library-v3.googlecode.com/svn/trunk/markerclusterer/images/m.png
+* _ 1. Url http://google-maps-utility-library-v3.googlecode.com/svn/trunk/markerclusterer/images/m.png _
 
 ## License
 
