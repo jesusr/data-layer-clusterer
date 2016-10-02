@@ -16,7 +16,7 @@ The options object could have the following parameters:
 | name | type | default | description | required |
 |---|---|---|---|---|
 | map | Google Map | - | Map where the clusters and markers has to be displayed | true |
-| styles | Object - Array[Object] | [] | Styles for the markers and cluster icon | false |
+| styles | Array[Object] | [] | Styles for the markers and cluster icon | false |
 | gridSize | Integer | 60 |  | false |
 | minimumClusterSize | Integer | 2 |  | false |
 | maxZoom | Integer | null |  | false |
