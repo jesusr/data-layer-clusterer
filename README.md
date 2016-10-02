@@ -33,10 +33,10 @@ The options object could have the following parameters:
 Now we have a empty cluster, so we need to add the properties we want to manage with the cluster. The DataLayerClusterer is an extension of [Map.Data layer of Google Maps API v3](https://developers.google.com/maps/documentation/javascript/reference#Data), so we can add features in the usual way:
 
 ```javascript
-          newCluster.addGeoJson(featureColl, {
-            idPropertyName: 'id'
-          });
-          newCluster.setMap(scope.map);
+    newCluster.addGeoJson(featureColl, {
+    idPropertyName: 'id'
+    });
+    newCluster.setMap(scope.map);
 ```
 
 ## Methods
@@ -54,9 +54,9 @@ Now we have a empty cluster, so we need to add the properties we want to manage 
 The event management could be done out of the library:
 
 ```javascript
-          var eventHoverIn = scope['newCluster']._dataLayer.addListener('mouseover', function(event) {
-            // Anything
-          });
+    var eventHoverIn = scope['newCluster']._dataLayer.addListener('mouseover', function(event) {
+    // Anything
+    });
 ```
 
 ## License
