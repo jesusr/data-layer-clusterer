@@ -1,4 +1,4 @@
-/* globals google */
+/* globals google, _ */
 /* exports DataLayerClusterer */
 'use strict';
 
@@ -58,24 +58,33 @@
 function DataLayerClusterer(optOptions) {
   DataLayerClusterer.extend(DataLayerClusterer, google.maps.OverlayView);
   var options = optOptions || {};
-  DataLayerClusterer.extend(DataLayerClusterer, {
-    clusters_: [],
-    sizes: [53, 56, 66, 78, 90],
-    ready_: false,
-    map: options.map || null,
-    gridSize_: options.gridSize || 60,
-    minClusterSize_: options.minimumClusterSize || 2,
-    maxZoom_: options.maxZoom || null,
-    className_: options.className || 'cluster',
-    styles_: options.styles || [],
-    imagePath_: options.imagePath || DataLayerClusterer.MARKER_CLUSTER_IMAGE_PATH_,
-    imageExtension_: options.imageExtension || DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_,
-    zoomOnClick_: options.zoomOnClick !== undefined ? options.zoomOnClick : true,
-    averageCenter_: options.averageCenter !== undefined ? options.averageCenter : true,
-    _dataLayer: new google.maps.Data()
-  });
+
+  this.clusters_ = [];
+  this.sizes = [53, 56, 66, 78, 90];
+  this.styles_ = [];
+  this.ready_ = false;
+  this.map = options.map || null;
+  this.gridSize_ = options.gridSize || 60;
+  this.minClusterSize_ = options.minimumClusterSize || 2;
+  this.maxZoom_ = options.maxZoom || null;
+  this.className_ = options.className || 'cluster';
+  this.styles_ = options.styles || [];
+  this.imagePath_ = options.imagePath || DataLayerClusterer.MARKER_CLUSTER_IMAGE_PATH_;
+  this.imageExtension_ = options.imageExtension || DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_;
+  this.zoomOnClick_ = true;
+  this.featuresArr = [];
+  if (options.zoomOnClick !== undefined) {
+    this.zoomOnClick_ = options.zoomOnClick;
+  }
+  this.averageCenter_ = true;
+  if (options.averageCenter !== undefined) {
+    this.averageCenter_ = options.averageCenter;
+  }
+
   this.setupStyles_();
+  this._dataLayer = new google.maps.Data();
   this._dataLayer.setStyle(DataLayerClusterer.HIDDEN_FEATURE);
+
   if (this.map !== null) {
     this.setMap(this.map);
   }
@@ -91,30 +100,24 @@ DataLayerClusterer.HIDDEN_FEATURE = {
   visible: false
 };
 
+
+
+
 /* ---- Public methods ---- */
 
-/**
- * Set the visibility of the entire data layer.
- *
- * @param {bool} v
- * @return {void}
- */
-DataLayerClusterer.prototype.setVisible = function(v) {
+DataLayerClusterer.prototype.setVisible = function (v) {
   if (!v) {
     this.map__ = this.getMap();
     google.maps.event.removeListener(this._idle);
-    // this._idle.remove();
     google.maps.event.removeListener(this._zoomchanged);
-    // this._zoomchanged.remove();
     this._dataLayer.setMap(null);
-    this.setMap(null);
-    this.resetViewport();
+    this.resetViewport(true);
   } else {
     if (!this.map__) this.map__ = this.map || this.map_;
     this.setMap(this.map__);
     this._dataLayer.setMap(this.map__);
     this.onAdd();
-    this.redraw();
+    this.redraw('from setvisible');
   }
 };
 
@@ -124,7 +127,7 @@ DataLayerClusterer.prototype.setVisible = function(v) {
  *
  * @return {number} The number of clusters.
  */
-DataLayerClusterer.prototype.getTotalClusters = function() {
+DataLayerClusterer.prototype.getTotalClusters = function () {
   return this.clusters_.length;
 };
 
@@ -134,7 +137,7 @@ DataLayerClusterer.prototype.getTotalClusters = function() {
  * @param {google.maps.LatLngBounds} bounds The bounds to extend.
  * @return {google.maps.LatLngBounds} The extended bounds.
  */
-DataLayerClusterer.prototype.getExtendedBounds = function(bounds) {
+DataLayerClusterer.prototype.getExtendedBounds = function (bounds) {
   var projection = this.getProjection();
 
   // Turn the bounds into latlng.
@@ -166,22 +169,23 @@ DataLayerClusterer.prototype.getExtendedBounds = function(bounds) {
 /**
  * Redraws the clusters.
  */
-DataLayerClusterer.prototype.redraw = function() {
-  var oldClusters = this.clusters_.slice();
-  this.clusters_.length = 0;
-
-  this.createClusters_();
-
-  // Remove the old clusters.
-  // Do it in a timeout so the other clusters have been drawn first.
-  window.requestAnimationFrame(function() {
-    var oldSize = oldClusters.length;
-    for (var i = 0; i !== oldSize; ++i) {
-      oldClusters[i].remove();
-    }
-  });
+DataLayerClusterer.prototype.redraw = function () {
+  // var oldClusters = this.clusters_.slice();
+  // this.clusters_.length = 0;
+  // if (this.featuresArr.length) {
+  //   this.createClusters_(0);
+  // }
+  //
+  // // Remove the old clusters.
+  // // Do it in a timeout so the other clusters have been drawn first.
+  // window.requestAnimationFrame(function() {
+  //   var oldSize = oldClusters.length;
+  //   for (var i = 0; i !== oldSize; ++i) {
+  //     oldClusters[i].remove();
+  //   }
+  // });
+  this.createClusters_(0);
 };
-
 
 /* ---- Options GET & SET ---- */
 
@@ -190,7 +194,7 @@ DataLayerClusterer.prototype.redraw = function() {
  *
  * @return {boolean} True if zoomOnClick_ is set.
  */
-DataLayerClusterer.prototype.isZoomOnClick = function() {
+DataLayerClusterer.prototype.isZoomOnClick = function () {
   return this.zoomOnClick_;
 };
 
@@ -199,7 +203,7 @@ DataLayerClusterer.prototype.isZoomOnClick = function() {
  *
  * @return {boolean} True if averageCenter_ is set.
  */
-DataLayerClusterer.prototype.isAverageCenter = function() {
+DataLayerClusterer.prototype.isAverageCenter = function () {
   return this.averageCenter_;
 };
 
@@ -208,7 +212,7 @@ DataLayerClusterer.prototype.isAverageCenter = function() {
  *
  *  @param {number} maxZoom The max zoom level.
  */
-DataLayerClusterer.prototype.setMaxZoom = function(maxZoom) {
+DataLayerClusterer.prototype.setMaxZoom = function (maxZoom) {
   this.maxZoom_ = maxZoom;
 };
 
@@ -217,7 +221,7 @@ DataLayerClusterer.prototype.setMaxZoom = function(maxZoom) {
  *
  *  @return {number} The max zoom level.
  */
-DataLayerClusterer.prototype.getMaxZoom = function() {
+DataLayerClusterer.prototype.getMaxZoom = function () {
   return this.maxZoom_;
 };
 
@@ -226,7 +230,7 @@ DataLayerClusterer.prototype.getMaxZoom = function() {
  *
  * @return {number} The grid size.
  */
-DataLayerClusterer.prototype.getGridSize = function() {
+DataLayerClusterer.prototype.getGridSize = function () {
   return this.gridSize_;
 };
 
@@ -235,7 +239,7 @@ DataLayerClusterer.prototype.getGridSize = function() {
  *
  * @param {number} size The grid size.
  */
-DataLayerClusterer.prototype.setGridSize = function(size) {
+DataLayerClusterer.prototype.setGridSize = function (size) {
   this.gridSize_ = size;
 };
 
@@ -244,7 +248,7 @@ DataLayerClusterer.prototype.setGridSize = function(size) {
  *
  * @return {number} The grid size.
  */
-DataLayerClusterer.prototype.getMinClusterSize = function() {
+DataLayerClusterer.prototype.getMinClusterSize = function () {
   return this.minClusterSize_;
 };
 
@@ -253,96 +257,109 @@ DataLayerClusterer.prototype.getMinClusterSize = function() {
  *
  * @param {number} size The grid size.
  */
-DataLayerClusterer.prototype.setMinClusterSize = function(size) {
+DataLayerClusterer.prototype.setMinClusterSize = function (size) {
   this.minClusterSize_ = size;
 };
 
 
 /* ---- google.maps.Data interface ---- */
 
-DataLayerClusterer.prototype.add = function(feature) {
+DataLayerClusterer.prototype.add = function (feature) {
   return this._dataLayer.add(feature);
 };
 
-DataLayerClusterer.prototype.addGeoJson = function(geoJson, options) {
+DataLayerClusterer.prototype.addGeoJson = function (geoJson, options) {
+  this.featuresArr = geoJson.features;
   return this._dataLayer.addGeoJson(geoJson, options);
 };
 
-DataLayerClusterer.prototype.contains = function(feature) {
+DataLayerClusterer.prototype.contains = function (feature) {
   return this._dataLayer.contains(feature);
 };
 
-DataLayerClusterer.prototype.forEach = function(callback) {
+DataLayerClusterer.prototype.forEach = function (callback) {
   return this._dataLayer.forEach(callback);
 };
 
-DataLayerClusterer.prototype.getControlPosition = function() {
+DataLayerClusterer.prototype.getControlPosition = function () {
   return this._dataLayer.getControlPosition();
 };
 
-DataLayerClusterer.prototype.getControls = function() {
+DataLayerClusterer.prototype.getControls = function () {
   return this._dataLayer.getControls();
 };
 
-DataLayerClusterer.prototype.getDrawingMode = function() {
+DataLayerClusterer.prototype.getDrawingMode = function () {
   return this._dataLayer.getDrawingMode();
 };
 
-DataLayerClusterer.prototype.getFeatureById = function(id) {
+DataLayerClusterer.prototype.getFeatureById = function (id) {
   return this._dataLayer.getFeatureById(id);
 };
 
-DataLayerClusterer.prototype.getStyle = function() {
+DataLayerClusterer.prototype.getStyle = function () {
   return this._dataLayer.getStyle();
 };
 
-DataLayerClusterer.prototype.loadGeoJson = function(url, options, callback) {
+DataLayerClusterer.prototype.loadGeoJson = function (url, options, callback) {
   return this._dataLayer.loadGeoJson(url, options, callback);
 };
 
-DataLayerClusterer.prototype.overrideStyle = function(feature, style) {
+DataLayerClusterer.prototype.overrideStyle = function (feature, style) {
   return this._dataLayer.overrideStyle(feature, style);
 };
 
-DataLayerClusterer.prototype.remove = function(feature) {
+DataLayerClusterer.prototype.remove = function (feature) {
+  _.remove(this.featuresArr, function (o) {
+    return o.properties.id === feature.getProperty('id');
+  });
+
   return this._dataLayer.remove(feature);
 };
 
-DataLayerClusterer.prototype.revertStyle = function(feature) {
+DataLayerClusterer.prototype.revertStyle = function (feature) {
   return this._dataLayer.revertStyle(feature);
 };
 
-DataLayerClusterer.prototype.setControlPosition = function(controlPosition) {
+DataLayerClusterer.prototype.setControlPosition = function (controlPosition) {
   return this._dataLayer.setControlPosition(controlPosition);
 };
 
-DataLayerClusterer.prototype.setControls = function(controls) {
+DataLayerClusterer.prototype.setControls = function (controls) {
   return this._dataLayer.setControls(controls);
 };
 
-DataLayerClusterer.prototype.setDrawingMode = function(drawingMode) {
+DataLayerClusterer.prototype.setDrawingMode = function (drawingMode) {
   return this._dataLayer.setDrawingMode(drawingMode);
 };
 
-DataLayerClusterer.prototype.setStyle = function(style) {
+DataLayerClusterer.prototype.setStyle = function (style) {
   return this._dataLayer.setStyle(style);
 };
 
-DataLayerClusterer.prototype.toGeoJson = function(callback) {
+DataLayerClusterer.prototype.toGeoJson = function (callback) {
   return this._dataLayer.toGeoJson(callback);
 };
 
 
 /* ---- Private methods ---- */
 
-DataLayerClusterer.prototype.resetViewport = function() {
+DataLayerClusterer.prototype.resetViewport = function (optHide) {
+  var i, j, marker;
   // Remove all the clusters
-  var csize = this.clusters_.length;
-  for (var i = 0; i !== csize; ++i) {
+  for (i = 0; i < this.clusters_.length; i++) {
     this.clusters_[i].remove();
   }
-
   this.clusters_ = [];
+
+  // Reset the markers to not be added and to be removed from the map.
+  for (j = 0; j < this.featuresArr.length; j++) {
+    marker = this._dataLayer.getFeatureById(this.featuresArr[j].properties.id);
+    marker.setProperty('isAdded', false);
+    if (optHide) {
+      this.remove(marker);
+    }
+  }
 };
 
 /**
@@ -351,10 +368,10 @@ DataLayerClusterer.prototype.resetViewport = function() {
  * @param {boolean} ready The state.
  * @private
  */
-DataLayerClusterer.prototype.setReady_ = function(ready) {
+DataLayerClusterer.prototype.setReady_ = function (ready) {
   if (!this.ready_) {
     this.ready_ = ready;
-    this.createClusters_();
+    // this.createClusters_();
   }
 };
 
@@ -366,7 +383,7 @@ DataLayerClusterer.prototype.setReady_ = function(ready) {
  * @return {boolean} True if the feature is in the bounds.
  * @private
  */
-DataLayerClusterer.prototype.isFeatureInBounds_ = function(f, bounds) {
+DataLayerClusterer.prototype.isFeatureInBounds_ = function (f, bounds) {
   return bounds.contains(f.getGeometry().get());
 };
 
@@ -379,7 +396,7 @@ DataLayerClusterer.prototype.isFeatureInBounds_ = function(f, bounds) {
  * @return {number} The distance between the two points in km.
  * @private
  */
-DataLayerClusterer.prototype.distanceBetweenPoints_ = function(p1, p2) {
+DataLayerClusterer.prototype.distanceBetweenPoints_ = function (p1, p2) {
   if (!p1 || !p2) {
     return 0;
   }
@@ -401,7 +418,7 @@ DataLayerClusterer.prototype.distanceBetweenPoints_ = function(p1, p2) {
  * @param {google.maps.Data.Feature} feature The feature to add.
  * @private
  */
-DataLayerClusterer.prototype.addToClosestCluster_ = function(feature) {
+DataLayerClusterer.prototype.addToClosestCluster_ = function (feature) {
   var distance = 40000; // Some large number
 
   var pos = feature.getGeometry().get();
@@ -435,23 +452,40 @@ DataLayerClusterer.prototype.addToClosestCluster_ = function(feature) {
  *
  * @private
  */
-DataLayerClusterer.prototype.createClusters_ = function() {
+DataLayerClusterer.prototype.createClusters_ = function (iFirst) {
+  var i, marker, mapBounds, bounds, iLast, _this = this;
   if (!this.ready_ || !this.map_) {
     return;
   }
-
-  var mapBounds = new google.maps.LatLngBounds(this.map_.getBounds().getSouthWest(),
-    this.map_.getBounds().getNorthEast());
-  var bounds = this.getExtendedBounds(mapBounds);
-
-  var self = this;
-  this.forEach(function(feature) {
-    if (self.isFeatureInBounds_(feature, bounds)) {
-      self.addToClosestCluster_(feature);
+  if (iFirst === 0) {
+    google.maps.event.trigger(this, 'clusteringbegin', this);
+    if (typeof this.timerRefStatic !== 'undefined') {
+      clearTimeout(this.timerRefStatic);
+      delete this.timerRefStatic;
     }
-  });
-};
+  }
 
+  mapBounds = new google.maps.LatLngBounds(this.map_.getBounds().getSouthWest(),
+    this.map_.getBounds().getNorthEast());
+  bounds = this.getExtendedBounds(mapBounds);
+
+  iLast = Math.min(iFirst + 1500, this.featuresArr.length);
+  for (i = iFirst; i < iLast; i++) {
+    marker = this._dataLayer.getFeatureById(this.featuresArr[i].properties.id);
+    if (!marker.getProperty('isAdded') && this.isFeatureInBounds_(marker, bounds)) {
+      this.addToClosestCluster_(marker);
+    }
+  }
+
+  if (iLast < this.featuresArr.length) {
+    this.timerRefStatic = setTimeout(function () {
+      _this.createClusters_(iLast);
+    }, 0);
+  } else {
+    delete this.timerRefStatic;
+    google.maps.event.trigger(this, 'clusteringend', this);
+  }
+};
 
 /* ---- google.maps.OverlayView interface methods ---- */
 
@@ -460,8 +494,9 @@ DataLayerClusterer.prototype.createClusters_ = function() {
  *
  * Adds the data layer to the map and setup the events listeners.
  */
-DataLayerClusterer.prototype.onAdd = function() {
-  var map = this.getMap();
+DataLayerClusterer.prototype.onAdd = function () {
+  var map = this.getMap(),
+    _this = this;
 
   if (this.map_ !== map) {
     this.onRemove();
@@ -474,25 +509,28 @@ DataLayerClusterer.prototype.onAdd = function() {
 
     this.prevZoom_ = this.map_.getZoom();
 
-    // Add the map event listeners
-    var self = this;
-    this._zoomchanged = google.maps.event.addListener(this.map_, 'zoom_changed', function() {
-      var zoom = self.map_.getZoom();
-
-      if (self.prevZoom_ !== zoom) {
-        self.prevZoom_ = zoom;
-        self.resetViewport();
+    if (this._idle) {
+      google.maps.event.removeListener(this._idle);
+    }
+    this._idle = google.maps.event.addListener(this.map_, 'idle', function () {
+      var zoom;
+      if (_this.map_) {
+        zoom = _this.map_.getZoom();
+      } else {
+        return;
       }
+      if (_this.prevZoom_ !== zoom) {
+        _this.resetViewport(false);
+        _this.prevZoom_ = zoom;
+        _this.redraw();
+      }
+      _this.redraw();
     });
-
-    this._idle = google.maps.event.addListener(this.map_, 'idle', function() {
-      self.redraw();
-    });
-
     this.setReady_(true);
-    this.redraw();
+    this.redraw('from onAdd');
   } else {
     this.setReady_(false);
+    this.redraw('from onAdd 2');
   }
 };
 
@@ -501,18 +539,18 @@ DataLayerClusterer.prototype.onAdd = function() {
  *
  * Removes the data layer from the map and cleans the events listeners.
  */
-DataLayerClusterer.prototype.onRemove = function() {
+DataLayerClusterer.prototype.onRemove = function () {
   if (this.map_ !== null) {
     if (this._zoomchanged !== null) {
       try {
         this.map_.removeListener(this._zoomchanged);
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (this._idle !== null) {
       try {
         this.map_.removeListener(this._idle);
-      } catch (e) {}
+      } catch (e) { }
     }
   }
 
@@ -526,7 +564,7 @@ DataLayerClusterer.prototype.onRemove = function() {
 /**
  * Empty implementation of the interface method.
  */
-DataLayerClusterer.prototype.draw = function() {};
+DataLayerClusterer.prototype.draw = function () { };
 
 
 /* ---- Utils ---- */
@@ -538,8 +576,8 @@ DataLayerClusterer.prototype.draw = function() {};
  * @param {Object} obj2 The object to extend with.
  * @return {Object} The new extended object.
  */
-DataLayerClusterer.extend = function(obj1, obj2) {
-  return (function(object) {
+DataLayerClusterer.extend = function (obj1, obj2) {
+  return (function (object) {
     for (var property in object.prototype) {
       if (object.prototype[property]) {
         this.prototype[property] = object.prototype[property];
@@ -548,7 +586,6 @@ DataLayerClusterer.extend = function(obj1, obj2) {
     return this;
   }).apply(obj1, [obj2]);
 };
-
 
 /**
  * A cluster that contains features.
@@ -561,16 +598,12 @@ DataLayerClusterer.extend = function(obj1, obj2) {
 function FeatureCluster(featureClusterer) {
   this.featureClusterer_ = featureClusterer;
   this.map_ = featureClusterer.getMap();
-
   this.minClusterSize_ = featureClusterer.getMinClusterSize();
   this.averageCenter_ = featureClusterer.isAverageCenter();
-
   this.center_ = null;
   this.features_ = [];
-
   this.bounds_ = null;
   this.classId = featureClusterer.className_ + '-' + this.featureClusterer_.clusters_.length;
-
   this.clusterIcon_ = new FeatureClusterIcon(this, featureClusterer.getStyles(),
     featureClusterer.getGridSize(), this.classId);
 }
@@ -581,12 +614,13 @@ function FeatureCluster(featureClusterer) {
  * @param {google.maps.Data.Feature} feature The feature to check.
  * @return {boolean} True if the feature is already added.
  */
-FeatureCluster.prototype.isFeatureAlreadyAdded = function(feature) {
+FeatureCluster.prototype.isFeatureAlreadyAdded = function (feature) {
+  var i, fsize;
   if (this.features_.indexOf) {
     return this.features_.indexOf(feature) !== -1;
   } else {
-    var fsize = this.features_.length;
-    for (var i = 0; i !== fsize; ++i) {
+    fsize = this.features_.length;
+    for (i = 0; i !== fsize; ++i) {
       if (this.features_[i] === feature) {
         return true;
       }
@@ -596,14 +630,14 @@ FeatureCluster.prototype.isFeatureAlreadyAdded = function(feature) {
   return false;
 };
 
-
 /**
  * Add a feature the cluster.
  *
  * @param {google.maps.Data.Feature} feature The feature to add.
  * @return {boolean} True if the feature was added.
  */
-FeatureCluster.prototype.addFeature = function(feature) {
+FeatureCluster.prototype.addFeature = function (feature) {
+  var l, lat, lng, len, i, j;
   if (this.isFeatureAlreadyAdded(feature)) {
     return false;
   }
@@ -613,17 +647,25 @@ FeatureCluster.prototype.addFeature = function(feature) {
     this.calculateBounds_();
   } else {
     if (this.averageCenter_) {
-      var l = this.features_.length + 1;
-      var lat = (this.center_.lat() * (l - 1) + feature.getGeometry().get().lat()) / l;
-      var lng = (this.center_.lng() * (l - 1) + feature.getGeometry().get().lng()) / l;
+      l = this.features_.length + 1;
+      lat = (this.center_.lat() * (l - 1) + feature.getGeometry().get().lat()) / l;
+      lng = (this.center_.lng() * (l - 1) + feature.getGeometry().get().lng()) / l;
       this.center_ = new google.maps.LatLng(lat, lng);
       this.calculateBounds_();
     }
   }
+  // var featureIndexInArr = _.findIndex(this.featuresArr, function(o) {
+  //   return o.properties.id === feature.properties.id;
+  // });
+  // if (featureIndexInArr >= 0) {
+  //   this.featuresArr[featureIndexInArr].isAdded = true;
+  //   this.featuresArr[featureIndexInArr].clusterID = this.classId;
+  // }
+  feature.setProperty('isAdded', true);
   feature.setProperty('clusterID', this.classId);
   this.features_.push(feature);
 
-  var len = this.features_.length;
+  len = this.features_.length;
   if (len < this.minClusterSize_) {
     // Min cluster size not reached so show the feature.
     this.featureClusterer_.overrideStyle(feature, DataLayerClusterer.VISIBLE_FEATURE);
@@ -631,13 +673,13 @@ FeatureCluster.prototype.addFeature = function(feature) {
 
   if (len === this.minClusterSize_) {
     // Hide the features that were showing.
-    for (var i = 0; i < len; i++) {
+    for (i = 0; i < len; i++) {
       this.featureClusterer_.overrideStyle(this.features_[i], DataLayerClusterer.HIDDEN_FEATURE);
     }
   }
 
   if (len >= this.minClusterSize_) {
-    for (var j = 0; j < len; j++) {
+    for (j = 0; j < len; j++) {
       this.featureClusterer_.overrideStyle(this.features_[j], DataLayerClusterer.HIDDEN_FEATURE);
     }
   }
@@ -651,7 +693,7 @@ FeatureCluster.prototype.addFeature = function(feature) {
  *
  * @return {DataLayerClusterer} The associated feature clusterer.
  */
-FeatureCluster.prototype.getDataLayerClusterer = function() {
+FeatureCluster.prototype.getDataLayerClusterer = function () {
   return this.featureClusterer_;
 };
 
@@ -660,11 +702,11 @@ FeatureCluster.prototype.getDataLayerClusterer = function() {
  *
  * @return {google.maps.LatLngBounds} the cluster bounds.
  */
-FeatureCluster.prototype.getBounds = function() {
-  var bounds = new google.maps.LatLngBounds(this.center_, this.center_);
+FeatureCluster.prototype.getBounds = function () {
+  var fsize, i, bounds = new google.maps.LatLngBounds(this.center_, this.center_);
 
-  var fsize = this.features_.length;
-  for (var i = 0; i !== fsize; ++i) {
+  fsize = this.features_.length;
+  for (i = 0; i !== fsize; ++i) {
     bounds.extend(this.features_[i].getGeometry().get());
   }
 
@@ -674,7 +716,7 @@ FeatureCluster.prototype.getBounds = function() {
 /**
  * Removes the cluster
  */
-FeatureCluster.prototype.remove = function() {
+FeatureCluster.prototype.remove = function () {
   this.clusterIcon_.remove();
   this.features_.length = 0;
   delete this.features_;
@@ -685,7 +727,7 @@ FeatureCluster.prototype.remove = function() {
  *
  * @return {number} The cluster size.
  */
-FeatureCluster.prototype.getSize = function() {
+FeatureCluster.prototype.getSize = function () {
   return this.features_.length;
 };
 
@@ -694,7 +736,7 @@ FeatureCluster.prototype.getSize = function() {
  *
  * @return {Array.<google.maps.Data.Feature>} The cluster's features.
  */
-FeatureCluster.prototype.getFeatures = function() {
+FeatureCluster.prototype.getFeatures = function () {
   return this.features_;
 };
 
@@ -703,17 +745,16 @@ FeatureCluster.prototype.getFeatures = function() {
  *
  * @return {google.maps.LatLng} The cluster center.
  */
-FeatureCluster.prototype.getCenter = function() {
+FeatureCluster.prototype.getCenter = function () {
   return this.center_;
 };
-
 
 /**
  * Calculated the extended bounds of the cluster with the grid.
  *
  * @private
  */
-FeatureCluster.prototype.calculateBounds_ = function() {
+FeatureCluster.prototype.calculateBounds_ = function () {
   var bounds = new google.maps.LatLngBounds(this.center_, this.center_);
   this.bounds_ = this.featureClusterer_.getExtendedBounds(bounds);
 };
@@ -724,7 +765,7 @@ FeatureCluster.prototype.calculateBounds_ = function() {
  * @param {google.maps.Data.Feature} feature The feature to check.
  * @return {boolean} True if the feature lies in the bounds.
  */
-FeatureCluster.prototype.isFeatureInClusterBounds = function(feature) {
+FeatureCluster.prototype.isFeatureInClusterBounds = function (feature) {
   return this.bounds_.contains(feature.getGeometry().get());
 };
 
@@ -733,21 +774,21 @@ FeatureCluster.prototype.isFeatureInClusterBounds = function(feature) {
  *
  * @return {google.maps.Map} The map.
  */
-FeatureCluster.prototype.getMap = function() {
+FeatureCluster.prototype.getMap = function () {
   return this.map_;
 };
 
 /**
  * Updates the cluster icon
  */
-FeatureCluster.prototype.updateIcon = function() {
-  var zoom = this.map_.getZoom();
-  var mz = this.featureClusterer_.getMaxZoom();
+FeatureCluster.prototype.updateIcon = function () {
+  var numStyles, sums, fsize, i, zoom = this.map_.getZoom(),
+    mz = this.featureClusterer_.getMaxZoom();
 
   if (mz && zoom > mz) {
     // The zoom is greater than our max zoom so show all the features in cluster.
-    var fsize = this.features_.length;
-    for (var i = 0; i !== fsize; ++i) {
+    fsize = this.features_.length;
+    for (i = 0; i !== fsize; ++i) {
       this.featureClusterer_.overrideStyle(this.features_[i], DataLayerClusterer.VISIBLE_FEATURE);
     }
 
@@ -760,15 +801,14 @@ FeatureCluster.prototype.updateIcon = function() {
     return;
   }
 
-  var numStyles = this.featureClusterer_.getStyles().length;
-  var sums = this.featureClusterer_.getCalculator()(this.features_, numStyles);
+  numStyles = this.featureClusterer_.getStyles().length;
+  sums = this.featureClusterer_.getCalculator()(this.features_, numStyles);
 
   this.clusterIcon_.setSums(sums);
 
   this.clusterIcon_.setCenter(this.center_);
   this.clusterIcon_.show();
 };
-
 
 /**
  * A cluster icon
@@ -801,13 +841,12 @@ function FeatureClusterIcon(cluster, styles, optpadding, classId) {
   this.setMap(this.map_);
 }
 
-
 /* ---- Public methods ---- */
 
 /**
  * Hide the icon.
  */
-FeatureClusterIcon.prototype.hide = function() {
+FeatureClusterIcon.prototype.hide = function () {
   if (this.div_) {
     this.div_.style.display = 'none';
   }
@@ -817,7 +856,7 @@ FeatureClusterIcon.prototype.hide = function() {
 /**
  * Position and show the icon.
  */
-FeatureClusterIcon.prototype.show = function() {
+FeatureClusterIcon.prototype.show = function () {
   if (this.div_) {
     var pos = this.getPosFromLatLng_(this.center_);
     this.div_.style.cssText = this.createCss(pos);
@@ -829,7 +868,7 @@ FeatureClusterIcon.prototype.show = function() {
 /**
  * Remove the icon from the map
  */
-FeatureClusterIcon.prototype.remove = function() {
+FeatureClusterIcon.prototype.remove = function () {
   this.setMap(null);
 };
 
@@ -838,10 +877,9 @@ FeatureClusterIcon.prototype.remove = function() {
  *
  * @param {google.maps.LatLng} center The latlng to set as the center.
  */
-FeatureClusterIcon.prototype.setCenter = function(center) {
+FeatureClusterIcon.prototype.setCenter = function (center) {
   this.center_ = center;
 };
-
 
 /* ---- google.maps.OverlayView interface methods ---- */
 
@@ -849,21 +887,21 @@ FeatureClusterIcon.prototype.setCenter = function(center) {
  * Adding the cluster icon to the dom.
  * @ignore
  */
-FeatureClusterIcon.prototype.onAdd = function() {
+FeatureClusterIcon.prototype.onAdd = function () {
+  var pos, panes, _this = this;
   this.div_ = document.createElement('DIV');
   if (this.visible_) {
-    var pos = this.getPosFromLatLng_(this.center_);
+    pos = this.getPosFromLatLng_(this.center_);
     this.div_.style.cssText = this.createCss(pos);
     this.div_.innerHTML = this.sums_.text;
     this.div_.className = this.cluster_.featureClusterer_.className_ + ' ' + this.classId;
   }
-
-  var panes = this.getPanes();
+  this.div_.className = this.cluster_.featureClusterer_.className_ + ' ' + this.classId;
+  panes = this.getPanes();
   panes.overlayMouseTarget.appendChild(this.div_);
 
-  var self = this;
-  google.maps.event.addDomListener(this.div_, 'click', function() {
-    self.triggerClusterClick();
+  google.maps.event.addDomListener(this.div_, 'click', function () {
+    _this.triggerClusterClick();
   });
 };
 
@@ -871,7 +909,7 @@ FeatureClusterIcon.prototype.onAdd = function() {
  * Draw the icon.
  * @ignore
  */
-FeatureClusterIcon.prototype.draw = function() {
+FeatureClusterIcon.prototype.draw = function () {
   if (this.visible_) {
     var pos = this.getPosFromLatLng_(this.center_);
     this.div_.style.top = pos.y + 'px';
@@ -883,7 +921,7 @@ FeatureClusterIcon.prototype.draw = function() {
  * Implementation of the onRemove interface.
  * @ignore
  */
-FeatureClusterIcon.prototype.onRemove = function() {
+FeatureClusterIcon.prototype.onRemove = function () {
   if (this.div_ && this.div_.parentNode) {
     this.hide();
     this.div_.parentNode.removeChild(this.div_);
@@ -891,13 +929,12 @@ FeatureClusterIcon.prototype.onRemove = function() {
   }
 };
 
-
 /* ---- Private methods ---- */
 
 /**
  * Triggers the clusterclick event and zoom's if the option is set.
  */
-FeatureClusterIcon.prototype.triggerClusterClick = function() {
+FeatureClusterIcon.prototype.triggerClusterClick = function () {
   var featureClusterer = this.cluster_.getDataLayerClusterer();
 
   // Trigger the clusterclick event.
@@ -916,7 +953,7 @@ FeatureClusterIcon.prototype.triggerClusterClick = function() {
  * @return {google.maps.Point} The position in pixels.
  * @private
  */
-FeatureClusterIcon.prototype.getPosFromLatLng_ = function(latlng) {
+FeatureClusterIcon.prototype.getPosFromLatLng_ = function (latlng) {
   var pos = this.getProjection().fromLatLngToDivPixel(latlng);
   pos.x -= parseInt(this.width_ / 2, 10);
   pos.y -= parseInt(this.height_ / 2, 10);
@@ -929,10 +966,10 @@ FeatureClusterIcon.prototype.getPosFromLatLng_ = function(latlng) {
  * @param {google.maps.Point} pos The position.
  * @return {string} The css style text.
  */
-FeatureClusterIcon.prototype.createCss = function(pos) {
-  var style = [];
+FeatureClusterIcon.prototype.createCss = function (pos) {
+  var txtColor, txtSize, backgroundPosition, style = [];
   style.push('background-image:url(' + this.url_ + ');');
-  var backgroundPosition = this.backgroundPosition_ ? this.backgroundPosition_ : '0 0';
+  backgroundPosition = this.backgroundPosition_ ? this.backgroundPosition_ : '0 0';
   style.push('background-position:' + backgroundPosition + ';');
 
   if (typeof this.anchor_ === 'object') {
@@ -956,8 +993,8 @@ FeatureClusterIcon.prototype.createCss = function(pos) {
       this.height_ + 'px; width:' + this.width_ + 'px; text-align:center;');
   }
 
-  var txtColor = this.textColor_ ? this.textColor_ : 'black';
-  var txtSize = this.textSize_ ? this.textSize_ : 11;
+  txtColor = this.textColor_ ? this.textColor_ : 'black';
+  txtSize = this.textSize_ ? this.textSize_ : 11;
 
   style.push('cursor:pointer; top:' + pos.y + 'px; left:' +
     pos.x + 'px; color:' + txtColor + '; position:absolute; font-size:' +
@@ -968,10 +1005,9 @@ FeatureClusterIcon.prototype.createCss = function(pos) {
 /**
  * Sets the icon to the the styles.
  */
-FeatureClusterIcon.prototype.useStyle = function() {
-  var index = Math.max(0, this.sums_.index - 1);
-  index = Math.min(this.styles_.length - 1, index);
-  var style = this.styles_[index];
+FeatureClusterIcon.prototype.useStyle = function () {
+  var index = Math.min(this.styles_.length - 1, Math.max(0, this.sums_.index - 1)),
+    style = this.styles_[index];
   this.url_ = style.url;
   this.height_ = style.height;
   this.width_ = style.width;
@@ -988,7 +1024,7 @@ FeatureClusterIcon.prototype.useStyle = function() {
  *   'text': (string) The text to display in the icon.
  *   'index': (number) The style index of the icon.
  */
-FeatureClusterIcon.prototype.setSums = function(sums) {
+FeatureClusterIcon.prototype.setSums = function (sums) {
   this.sums_ = sums;
   this.text_ = sums.text;
   this.index_ = sums.index;
@@ -998,7 +1034,6 @@ FeatureClusterIcon.prototype.setSums = function(sums) {
 
   this.useStyle();
 };
-
 
 /* ---- To remove soon ---- */
 /*
@@ -1020,13 +1055,12 @@ DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_ = 'png';
  *
  * @private
  */
-DataLayerClusterer.prototype.setupStyles_ = function() {
+DataLayerClusterer.prototype.setupStyles_ = function () {
+  var i, ssizes = this.sizes.length;
   if (this.styles_.length) {
     return;
   }
-
-  var ssizes = this.sizes.length;
-  for (var i = 0; i !== ssizes; ++i) {
+  for (i = 0; i !== ssizes; ++i) {
     this.styles_.push({
       url: this.imagePath_ + (i + 1) + '.' + this.imageExtension_,
       height: this.sizes[i],
@@ -1040,7 +1074,7 @@ DataLayerClusterer.prototype.setupStyles_ = function() {
  *
  *  @param {Object} styles The style to set.
  */
-DataLayerClusterer.prototype.setStyles = function(styles) {
+DataLayerClusterer.prototype.setStyles = function (styles) {
   this.styles_ = styles;
 };
 
@@ -1049,7 +1083,7 @@ DataLayerClusterer.prototype.setStyles = function(styles) {
  *
  *  @return {Object} The styles object.
  */
-DataLayerClusterer.prototype.getStyles = function() {
+DataLayerClusterer.prototype.getStyles = function () {
   return this.styles_;
 };
 
@@ -1061,7 +1095,7 @@ DataLayerClusterer.prototype.getStyles = function() {
  *     'text' (string) and 'index' (number).
  *
  */
-DataLayerClusterer.prototype.setCalculator = function(calculator) {
+DataLayerClusterer.prototype.setCalculator = function (calculator) {
   this.calculator_ = calculator;
 };
 
@@ -1070,7 +1104,7 @@ DataLayerClusterer.prototype.setCalculator = function(calculator) {
  *
  * @return {function(Array, number)} the calculator function.
  */
-DataLayerClusterer.prototype.getCalculator = function() {
+DataLayerClusterer.prototype.getCalculator = function () {
   return this.calculator_;
 };
 
@@ -1082,10 +1116,10 @@ DataLayerClusterer.prototype.getCalculator = function() {
  *  @return {Object} A object properties: 'text' (string) and 'index' (number).
  *  @private
  */
-DataLayerClusterer.prototype.calculator_ = function(features, numStyles) {
-  var index = 0;
-  var count = features.length;
-  var dv = count;
+DataLayerClusterer.prototype.calculator_ = function (features, numStyles) {
+  var index = 0,
+    count = features.length,
+    dv = count;
   while (dv !== 0) {
     dv = parseInt(dv / 10, 10);
     index++;
@@ -1098,5 +1132,4 @@ DataLayerClusterer.prototype.calculator_ = function(features, numStyles) {
   };
 };
 
-// Class exposure
 window.DataLayerClusterer = DataLayerClusterer;
