@@ -26,7 +26,7 @@ The options object could have the following parameters:
 | zoomOnClick | Boolean | true |  | false |
 | averageCenter | Boolean | true |  | false |
 
-*Url http://google-maps-utility-library-v3.googlecode.com/svn/trunk/markerclusterer/images/m.png
+  - * 1. Url http://google-maps-utility-library-v3.googlecode.com/svn/trunk/markerclusterer/images/m.png
 
 ## License
 
