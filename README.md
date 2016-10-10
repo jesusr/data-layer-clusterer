@@ -21,11 +21,12 @@ My current implementation now includes the following changes:
 - LineStrings and Polygons are being clustered as well, using the center point of their bounding rectangles
 - new option 'setProperty': If set to true, instead of changing the StyleOption attribute 'visible' of the features directly, a boolean property 'in_cluster' (or a configurable property name defined in the constant DataLayerClusterer.CLUSTER_PROPERTY_NAME) is set on the features, which can then be used to toggle visibility (for example in order to take into account other properties for additonal filtering)
 - new option 'recolorSvg': (string) only takes action if SVG is supported and being used: a selector string for an SVG element in the set imagePath that can be used for re-coloring the cluster marker image. This saves requests and prevents the different marker images popping up after loading.
+- new option: 'minimumPolySize': (number) The minimum width or height of the bounding box of a feature (other than type 'Point') in pixels before it is forced into a cluster, even if the cluster ends up containing only this one feature. 0 or false to disable this functionality.
 
 To read more and view a working example, see my blog post at www.constantinmedia.com/2016/09/google-maps-javascript-api-v3-handling-large-amounts-of-features-using-clustering-in-data-layers/
 
 ## More to come
-- Cluster LineStrings and Polygons not only based on their bounding rectangle center points, but also if they are becoming too small according to a threshold value in pixels for either width or height
+- When LineStrings and Polygons are becoming too small according to the minimumPolySize option, display a marker instead for better visibility.
 
 ## License
 
