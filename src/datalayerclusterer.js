@@ -4,7 +4,7 @@
 
 /**
  * @name DataLayerClusterer for Google Maps v3 (Connum's Fork)
- * @version version 1.0.0
+ * @version version 1.0.1
  * @author Nelson Antunes
  * @author Jesús R Peinado
  * @author Constantin Groß
@@ -46,6 +46,11 @@
  *     'minimumClusterSize': (number) The minimum number of features to be in a
  *                           cluster before the features are hidden and a count
  *                           is shown.
+ *     'minimumPolySize': (number) The minimum width or height of the bounding box
+ *                        of a feature (other than type 'Point') in pixels before
+ *                        it is forced into a cluster, even if the cluster ends up
+ *                        containing only this one feature. 0 or false to disable
+ *                        this functionality.
  *     'setProperty': (boolean) when true, the features will not be hidden, but
  *                    the property 'in_cluster' (or a configurable property name defined
  *                    in the constant DataLayerClusterer.CLUSTER_PROPERTY_NAME)
@@ -83,6 +88,7 @@ function DataLayerClusterer(optOptions) {
   this.map = options.map || null;
   this.gridSize_ = options.gridSize || 60;
   this.minClusterSize_ = options.minimumClusterSize || 2;
+  this.minPolySize_ = options.minimumPolySize || 50;
   this.setProperty_ = options.setProperty || false;
   this.maxZoom_ = options.maxZoom || null;
   this.className_ = options.className || 'cluster';
@@ -521,6 +527,7 @@ DataLayerClusterer.prototype.addToClosestCluster_ = function(feature) {
 
   if (isVisible) {
     var csize = this.clusters_.length;
+
     for (var i = 0; i !== csize; ++i) {
       var center = this.clusters_[i].getCenter();
 
@@ -688,6 +695,8 @@ function FeatureCluster(featureClusterer) {
 
   this.clusterIcon_ = new FeatureClusterIcon(this, featureClusterer.getStyles(),
     featureClusterer.getGridSize(), this.classId);
+
+  this.forced_ = false;
 }
 
 /**
@@ -741,7 +750,26 @@ FeatureCluster.prototype.addFeature = function(feature) {
   this.features_.push(feature);
 
   var len = this.features_.length;
-  if (len < this.minClusterSize_) {
+
+  if (len == 1 && !!this.featureClusterer_.minPolySize_ && feature.getGeometry().getType() != 'Point') {
+    var polyMinSize = this.featureClusterer_.minPolySize_;
+    var bounds = this.featureClusterer_.featureBounds_(feature);
+    var SW = bounds.getSouthWest();
+    var NE = bounds.getNorthEast();
+    var proj = this.map_.getProjection();
+    var swPx = proj.fromLatLngToPoint(SW);
+    var nePx = proj.fromLatLngToPoint(NE);
+    var pixelWidth =  Math.round(Math.abs((nePx.x - swPx.x)* Math.pow(2, this.map_.getZoom())));
+    var pixelHeight = Math.round(Math.abs((swPx.y - nePx.y)* Math.pow(2, this.map_.getZoom())));
+
+    if (pixelWidth < polyMinSize && pixelHeight < polyMinSize) {
+      this.forced_ = true;
+    } else {
+      this.forced_ = false;
+    }
+  }
+
+  if (len < this.minClusterSize_ && !this.forced_) {
     // Min cluster size not reached so show the feature.
     if (this.featureClusterer_.setProperty_) {
       feature.setProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME, false);
@@ -750,7 +778,7 @@ FeatureCluster.prototype.addFeature = function(feature) {
     }
   }
 
-  if (len === this.minClusterSize_) {
+  if (len === this.minClusterSize_ || this.forced_) {
     // Hide the features that were showing.
     for (var i = 0; i < len; i++) {
       if (this.featureClusterer_.setProperty_) {
@@ -761,7 +789,7 @@ FeatureCluster.prototype.addFeature = function(feature) {
     }
   }
 
-  if (len >= this.minClusterSize_) {
+  if (len >= this.minClusterSize_ || this.forced_) {
     for (var j = 0; j < len; j++) {
       if (this.featureClusterer_.setProperty_) {
         this.features_[j].setProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME, true);
@@ -887,7 +915,7 @@ FeatureCluster.prototype.updateIcon = function() {
     return;
   }
 
-  if (this.features_.length < this.minClusterSize_) {
+  if (this.features_.length < this.minClusterSize_ && !this.forced_) {
     // Min cluster size not yet reached.
     this.clusterIcon_.hide();
     return;
