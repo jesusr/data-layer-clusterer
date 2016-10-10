@@ -3,9 +3,11 @@
 'use strict';
 
 /**
- * @name DataLayerClusterer for Google Maps v3
- * @version version 0.7.2
+ * @name DataLayerClusterer for Google Maps v3 (Connum's Fork)
+ * @version version 1.0.1
  * @author Nelson Antunes
+ * @author Jesús R Peinado
+ * @author Constantin Groß
  *
  * The library creates and manages per-zoom-level clusters for large amounts of
  * data layer features.
@@ -33,7 +35,7 @@
  *
  * @param {google.maps.Map} map The Google map to attach to.
  * @param {Object=} optOptions support the following options:
- *       'map': (google.maps.Map) The Google map to attach to.
+ *     'map': (google.maps.Map) The Google map to attach to.
  *     'gridSize': (number) The grid size of a cluster in pixels.
  *     'maxZoom': (number) The maximum zoom level that a feature can be part of a
  *                cluster.
@@ -44,6 +46,22 @@
  *     'minimumClusterSize': (number) The minimum number of features to be in a
  *                           cluster before the features are hidden and a count
  *                           is shown.
+ *     'minimumPolySize': (number) The minimum width or height of the bounding box
+ *                        of a feature (other than type 'Point') in pixels before
+ *                        it is forced into a cluster, even if the cluster ends up
+ *                        containing only this one feature. 0 or false to disable
+ *                        this functionality.
+ *     'setProperty': (boolean) when true, the features will not be hidden, but
+ *                    the property 'in_cluster' (or a configurable property name defined
+ *                    in the constant DataLayerClusterer.CLUSTER_PROPERTY_NAME)
+ *                    will be set to a boolean value, indicating whether the feature is
+ *                    currently being clustered or not. This allows to handle
+ *                    hiding/showing manually, taking other factors (like filtering)
+ *                    into account.
+ *     'recolorSVG': (string) only takes action if SVG is being used:
+ *                   a selector for an SVG element in the set imagePath that can be used
+ *                   for re-coloring the cluster marker image. This saves requests and
+ *                   prevents the different marker images popping up after loading.
  *     'styles': (object) An object that has style properties:
  *       'url': (string) The image url.
  *       'height': (number) The image height.
@@ -57,31 +75,64 @@
  */
 function DataLayerClusterer(optOptions) {
   DataLayerClusterer.extend(DataLayerClusterer, google.maps.OverlayView);
+  this.addListener = function(type, callback) {
+    return this._dataLayer.addListener(type, callback);
+  };
+
   var options = optOptions || {};
-  DataLayerClusterer.extend(DataLayerClusterer, {
-    clusters_: [],
-    sizes: [53, 56, 66, 78, 90],
-    ready_: false,
-    map: options.map || null,
-    gridSize_: options.gridSize || 60,
-    minClusterSize_: options.minimumClusterSize || 2,
-    maxZoom_: options.maxZoom || null,
-    className_: options.className || 'cluster',
-    styles_: options.styles || [],
-    imagePath_: options.imagePath || DataLayerClusterer.MARKER_CLUSTER_IMAGE_PATH_,
-    imageExtension_: options.imageExtension || DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_,
-    zoomOnClick_: options.zoomOnClick !== undefined ? options.zoomOnClick : true,
-    averageCenter_: options.averageCenter !== undefined ? options.averageCenter : true,
-    _dataLayer: new google.maps.Data()
-  });
-  this.setupStyles_();
-  this._dataLayer.setStyle(DataLayerClusterer.HIDDEN_FEATURE);
-  if (this.map !== null) {
-    this.setMap(this.map);
-  }
+
+  this.clusters_ = [];
+  this.sizes = [53, 56, 66, 78, 90];
+  this.colors = ['#008cff','#ffbf00','#ff0000','#ff00ed','#9c00ff'];
+  this.ready_ = false;
+  this.map = options.map || null;
+  this.gridSize_ = options.gridSize || 60;
+  this.minClusterSize_ = options.minimumClusterSize || 2;
+  this.minPolySize_ = options.minimumPolySize || 50;
+  this.setProperty_ = options.setProperty || false;
+  this.maxZoom_ = options.maxZoom || null;
+  this.className_ = options.className || 'cluster';
+  this.styles_ = options.styles || [];
+  this.imagePath_ = options.imagePath || DataLayerClusterer.MARKER_CLUSTER_IMAGE_PATH_;
+  this.imageExtension_ = options.imageExtension || DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_;
+  this.zoomOnClick_ = options.zoomOnClick !== undefined ? options.zoomOnClick : true;
+  this.averageCenter_ = options.averageCenter !== undefined ? options.averageCenter : true;
+  this._dataLayer = new google.maps.Data();
+  this.firstIdle_ = true;
+  this.recolorSVG_ = typeof options.recolorSVG !== "undefined" && (typeof options.recolorSVG === "string" || options.recolorSVG instanceof String || options.recolorSVG === false) ? options.recolorSVG : 'g:first-child';
+  this.baseSVG_ = null;
+  
+  if (this.recolorSVG_ && this.imageExtension_ == 'svg') {
+    var self = this,
+    xhr = new XMLHttpRequest();
+    xhr.open("GET",/\.svg$/.test(this.imagePath_) ? this.imagePath_ : this.imagePath_ + '1.' + this.imageExtension_);
+    // Following line is just to be on the safe side;
+    // not needed if your server delivers SVG with correct MIME type
+    xhr.overrideMimeType("image/svg+xml");
+    xhr.send("");
+
+    xhr.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            if (this.status == 200) {
+              self.baseSVG_ = {
+                'document': xhr.responseXML.documentElement,
+                'colorElement': xhr.responseXML.documentElement.querySelector(self.recolorSVG_)
+              };
+              if (!self.baseSVG_.document || !self.baseSVG_.colorElement) {
+                self.recolorSVG_ = false;
+              }
+            } else {
+              self.recolorSVG_ = false;
+            }
+            self.init_();
+        }
+    };
+  } else this.init_();
 }
 
 /* ---- Constants ---- */
+
+DataLayerClusterer.CLUSTER_PROPERTY_NAME = 'in_cluster';
 
 DataLayerClusterer.VISIBLE_FEATURE = {
   visible: true
@@ -325,7 +376,11 @@ DataLayerClusterer.prototype.setDrawingMode = function(drawingMode) {
 };
 
 DataLayerClusterer.prototype.setStyle = function(style) {
-  return this._dataLayer.setStyle(style);
+  var returnVal = this._dataLayer.setStyle(style);
+  if (this.setProperty_) {
+    this.redraw();
+  }
+  return returnVal;
 };
 
 DataLayerClusterer.prototype.toGeoJson = function(callback) {
@@ -352,8 +407,8 @@ DataLayerClusterer.prototype.resetViewport = function() {
  * @private
  */
 DataLayerClusterer.prototype.setReady_ = function(ready) {
-  if (!this.ready_) {
-    this.ready_ = ready;
+  this.ready_ = ready;
+  if (ready) {
     this.createClusters_();
   }
 };
@@ -367,7 +422,20 @@ DataLayerClusterer.prototype.setReady_ = function(ready) {
  * @private
  */
 DataLayerClusterer.prototype.isFeatureInBounds_ = function(f, bounds) {
-  return bounds.contains(f.getGeometry().get());
+  var geom = f.getGeometry(),
+      inBounds = false;
+
+  if (geom.getType() == 'Point') {
+    inBounds = bounds.contains(geom.get());
+  } else {
+    var self = this;
+    geom.getArray().forEach(function(g) {
+      inBounds = g instanceof google.maps.LatLng ? bounds.contains(g) : bounds.contains(self.featureCenter_(g));
+      return !inBounds;
+    });
+  }
+
+  return inBounds;
 };
 
 /**
@@ -396,6 +464,46 @@ DataLayerClusterer.prototype.distanceBetweenPoints_ = function(p1, p2) {
 };
 
 /**
+ * Calculates the bounds of a feature
+ *
+ * @private
+ */
+DataLayerClusterer.prototype.featureBounds_ = function(feature, extendBounds) {
+  var geom = feature.getGeometry ? feature.getGeometry() : feature,
+      geom_bounds = extendBounds || new google.maps.LatLngBounds();
+
+    if (geom.getType() == 'Point') {
+      geom_bounds.extend(geom.get());
+    } else {
+      geom.getArray().forEach(function(g){
+        if (g instanceof google.maps.LatLng) {
+          geom_bounds.extend(g);
+        } else {
+          g.getArray().forEach(function(LatLng) {
+            geom_bounds.extend(LatLng);
+          });
+        }
+      });
+    }
+    
+  return geom_bounds;
+};
+
+/**
+ * Calculates the center point of the bounds of a feature
+ *
+ * @private
+ */
+DataLayerClusterer.prototype.featureCenter_ = function(feature) {
+  var geom = feature.getGeometry ? feature.getGeometry() : feature;
+  if (geom.getType() == 'Point') {
+    return geom.get();
+  } else {
+    return this.featureBounds_(feature).getCenter();
+  }
+};
+
+/**
  * Add a feature to a cluster, or creates a new cluster.
  *
  * @param {google.maps.Data.Feature} feature The feature to add.
@@ -404,29 +512,41 @@ DataLayerClusterer.prototype.distanceBetweenPoints_ = function(p1, p2) {
 DataLayerClusterer.prototype.addToClosestCluster_ = function(feature) {
   var distance = 40000; // Some large number
 
-  var pos = feature.getGeometry().get();
-
+  var pos = this.featureCenter_(feature);
   var cluster;
 
-  var csize = this.clusters_.length;
-  for (var i = 0; i !== csize; ++i) {
-    var center = this.clusters_[i].getCenter();
-
-    if (center) {
-      var d = this.distanceBetweenPoints_(center, pos);
-      if (d < distance) {
-        distance = d;
-        cluster = this.clusters_[i];
-      }
-    }
+  var isVisible = true;
+  if (this.setProperty_) {
+    var propBefore = feature.getProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME);
+    feature.setProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME, false);
+    var fStyle = this.getStyle(feature);
+    if (typeof fStyle == 'function') fStyle = fStyle(feature);
+    isVisible = typeof fStyle.visible == 'undefined' || fStyle.visible;
+    feature.setProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME, propBefore);
   }
 
-  if (cluster && cluster.isFeatureInClusterBounds(feature)) {
-    cluster.addFeature(feature);
-  } else {
-    cluster = new FeatureCluster(this);
-    cluster.addFeature(feature);
-    this.clusters_.push(cluster);
+  if (isVisible) {
+    var csize = this.clusters_.length;
+
+    for (var i = 0; i !== csize; ++i) {
+      var center = this.clusters_[i].getCenter();
+
+      if (center) {
+        var d = this.distanceBetweenPoints_(center, pos);
+        if (d < distance) {
+          distance = d;
+          cluster = this.clusters_[i];
+        }
+      }
+    }
+
+    if (cluster && cluster.isFeatureInClusterBounds(feature)) {
+      cluster.addFeature(feature);
+    } else {
+      cluster = new FeatureCluster(this);
+      cluster.addFeature(feature);
+      this.clusters_.push(cluster);
+    }
   }
 };
 
@@ -486,11 +606,13 @@ DataLayerClusterer.prototype.onAdd = function() {
     });
 
     this._idle = google.maps.event.addListener(this.map_, 'idle', function() {
-      self.redraw();
+      if (!self.firstIdle_) {
+        self.redraw();
+      }
+      self.firstIdle_ = false;
     });
 
     this.setReady_(true);
-    this.redraw();
   } else {
     this.setReady_(false);
   }
@@ -573,6 +695,8 @@ function FeatureCluster(featureClusterer) {
 
   this.clusterIcon_ = new FeatureClusterIcon(this, featureClusterer.getStyles(),
     featureClusterer.getGridSize(), this.classId);
+
+  this.forced_ = false;
 }
 
 /**
@@ -608,14 +732,16 @@ FeatureCluster.prototype.addFeature = function(feature) {
     return false;
   }
 
+  var geom = feature.getGeometry(), centerPoint = this.featureClusterer_.featureCenter_(feature);
+
   if (!this.center_) {
-    this.center_ = feature.getGeometry().get();
+    this.center_ = centerPoint;
     this.calculateBounds_();
   } else {
     if (this.averageCenter_) {
       var l = this.features_.length + 1;
-      var lat = (this.center_.lat() * (l - 1) + feature.getGeometry().get().lat()) / l;
-      var lng = (this.center_.lng() * (l - 1) + feature.getGeometry().get().lng()) / l;
+      var lat = (this.center_.lat() * (l - 1) + centerPoint.lat()) / l;
+      var lng = (this.center_.lng() * (l - 1) + centerPoint.lng()) / l;
       this.center_ = new google.maps.LatLng(lat, lng);
       this.calculateBounds_();
     }
@@ -624,21 +750,52 @@ FeatureCluster.prototype.addFeature = function(feature) {
   this.features_.push(feature);
 
   var len = this.features_.length;
-  if (len < this.minClusterSize_) {
-    // Min cluster size not reached so show the feature.
-    this.featureClusterer_.overrideStyle(feature, DataLayerClusterer.VISIBLE_FEATURE);
-  }
 
-  if (len === this.minClusterSize_) {
-    // Hide the features that were showing.
-    for (var i = 0; i < len; i++) {
-      this.featureClusterer_.overrideStyle(this.features_[i], DataLayerClusterer.HIDDEN_FEATURE);
+  if (len == 1 && !!this.featureClusterer_.minPolySize_ && feature.getGeometry().getType() != 'Point') {
+    var polyMinSize = this.featureClusterer_.minPolySize_;
+    var bounds = this.featureClusterer_.featureBounds_(feature);
+    var SW = bounds.getSouthWest();
+    var NE = bounds.getNorthEast();
+    var proj = this.map_.getProjection();
+    var swPx = proj.fromLatLngToPoint(SW);
+    var nePx = proj.fromLatLngToPoint(NE);
+    var pixelWidth =  Math.round(Math.abs((nePx.x - swPx.x)* Math.pow(2, this.map_.getZoom())));
+    var pixelHeight = Math.round(Math.abs((swPx.y - nePx.y)* Math.pow(2, this.map_.getZoom())));
+
+    if (pixelWidth < polyMinSize && pixelHeight < polyMinSize) {
+      this.forced_ = true;
+    } else {
+      this.forced_ = false;
     }
   }
 
-  if (len >= this.minClusterSize_) {
+  if (len < this.minClusterSize_ && !this.forced_) {
+    // Min cluster size not reached so show the feature.
+    if (this.featureClusterer_.setProperty_) {
+      feature.setProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME, false);
+    } else {
+      this.featureClusterer_.overrideStyle(feature, DataLayerClusterer.VISIBLE_FEATURE);
+    }
+  }
+
+  if (len === this.minClusterSize_ || this.forced_) {
+    // Hide the features that were showing.
+    for (var i = 0; i < len; i++) {
+      if (this.featureClusterer_.setProperty_) {
+        this.features_[i].setProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME, true);
+      } else {
+        this.featureClusterer_.overrideStyle(this.features_[i], DataLayerClusterer.HIDDEN_FEATURE);
+      }
+    }
+  }
+
+  if (len >= this.minClusterSize_ || this.forced_) {
     for (var j = 0; j < len; j++) {
-      this.featureClusterer_.overrideStyle(this.features_[j], DataLayerClusterer.HIDDEN_FEATURE);
+      if (this.featureClusterer_.setProperty_) {
+        this.features_[j].setProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME, true);
+      } else {
+        this.featureClusterer_.overrideStyle(this.features_[j], DataLayerClusterer.HIDDEN_FEATURE);
+      }
     }
   }
 
@@ -665,7 +822,7 @@ FeatureCluster.prototype.getBounds = function() {
 
   var fsize = this.features_.length;
   for (var i = 0; i !== fsize; ++i) {
-    bounds.extend(this.features_[i].getGeometry().get());
+    bounds = this.featureClusterer_.featureBounds_(this.features_[i], bounds);
   }
 
   return bounds;
@@ -725,7 +882,7 @@ FeatureCluster.prototype.calculateBounds_ = function() {
  * @return {boolean} True if the feature lies in the bounds.
  */
 FeatureCluster.prototype.isFeatureInClusterBounds = function(feature) {
-  return this.bounds_.contains(feature.getGeometry().get());
+  return this.bounds_.contains(this.featureClusterer_.featureCenter_(feature));
 };
 
 /**
@@ -748,13 +905,17 @@ FeatureCluster.prototype.updateIcon = function() {
     // The zoom is greater than our max zoom so show all the features in cluster.
     var fsize = this.features_.length;
     for (var i = 0; i !== fsize; ++i) {
-      this.featureClusterer_.overrideStyle(this.features_[i], DataLayerClusterer.VISIBLE_FEATURE);
+      if (this.featureClusterer_.setProperty_) {
+        this.features_[i].setProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME, false);
+      } else {
+        this.featureClusterer_.overrideStyle(this.features_[i], DataLayerClusterer.VISIBLE_FEATURE);
+      }
     }
 
     return;
   }
 
-  if (this.features_.length < this.minClusterSize_) {
+  if (this.features_.length < this.minClusterSize_ && !this.forced_) {
     // Min cluster size not yet reached.
     this.clusterIcon_.hide();
     return;
@@ -932,6 +1093,7 @@ FeatureClusterIcon.prototype.getPosFromLatLng_ = function(latlng) {
 FeatureClusterIcon.prototype.createCss = function(pos) {
   var style = [];
   style.push('background-image:url(' + this.url_ + ');');
+  if (this.cluster_.featureClusterer_.recolorSVG_) style.push('background-size: contain;');
   var backgroundPosition = this.backgroundPosition_ ? this.backgroundPosition_ : '0 0';
   style.push('background-position:' + backgroundPosition + ';');
 
@@ -1003,7 +1165,6 @@ FeatureClusterIcon.prototype.setSums = function(sums) {
 /* ---- To remove soon ---- */
 /*
  * TODO: Allow the styling using a similar interface than google.map.Data.
- *       Use SVG icon by default, remove dependency of google-maps-utility-library-v3.googlecode.com.
  */
 
 /**
@@ -1012,8 +1173,29 @@ FeatureClusterIcon.prototype.setSums = function(sums) {
  * @type {string}
  */
 DataLayerClusterer.MARKER_CLUSTER_IMAGE_PATH_ =
-  'http://google-maps-utility-library-v3.googlecode.com/svn/trunk/markerclusterer/images/m';
-DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_ = 'png';
+  'https://cdn.rawgit.com/Connum/data-layer-clusterer/master/images/m';
+DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_ = document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#Image", "1.1") ? 'svg' : 'png';
+
+
+/**
+ * Initialises the clustering when everything is ready
+ *
+ * @private
+ */
+DataLayerClusterer.prototype.init_ = function() {
+  this.setupStyles_();
+
+  if (this.setProperty_) {
+    this._dataLayer.forEach(function(feature) {
+      feature.setProperty('in_cluster', true);
+    });
+  } else {
+    this._dataLayer.setStyle(DataLayerClusterer.HIDDEN_FEATURE);
+  }
+  if (this.map !== null) {
+    this.setMap(this.map);
+  }
+}
 
 /**
  * Sets up the styles object.
@@ -1027,10 +1209,17 @@ DataLayerClusterer.prototype.setupStyles_ = function() {
 
   var ssizes = this.sizes.length;
   for (var i = 0; i !== ssizes; ++i) {
+    var thisSize = this.sizes[i],
+        thisColor = this.colors[i],
+        markerUrl = this.imagePath_ + (i + 1) + '.' + this.imageExtension_;
+    if (this.recolorSVG_) {
+      this.baseSVG_.colorElement.style.fill = thisColor;
+      markerUrl = 'data:image/svg+xml;base64,' + btoa(this.baseSVG_.document.outerHTML);
+    }
     this.styles_.push({
-      url: this.imagePath_ + (i + 1) + '.' + this.imageExtension_,
-      height: this.sizes[i],
-      width: this.sizes[i]
+      url: markerUrl,
+      height: thisSize,
+      width: thisSize
     });
   }
 };
