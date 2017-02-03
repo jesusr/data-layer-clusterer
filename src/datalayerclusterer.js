@@ -1179,8 +1179,6 @@ DataLayerClusterer.prototype.init_ = function() {
     this._dataLayer.forEach(function(feature) {
       feature.setProperty('in_cluster', true);
     });
-  } else {
-    this._dataLayer.setStyle(DataLayerClusterer.HIDDEN_FEATURE);
   }
   if (this.map !== null) {
     this.setMap(this.map);
