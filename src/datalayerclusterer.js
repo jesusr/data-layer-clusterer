@@ -778,23 +778,13 @@ FeatureCluster.prototype.addFeature = function(feature) {
     }
   }
 
-  if (len === this.minClusterSize_ || this.forced_) {
+  if (len >= this.minClusterSize_ || this.forced_) {
     // Hide the features that were showing.
     for (var i = 0; i < len; i++) {
       if (this.featureClusterer_.setProperty_) {
         this.features_[i].setProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME, true);
       } else {
         this.featureClusterer_.overrideStyle(this.features_[i], DataLayerClusterer.HIDDEN_FEATURE);
-      }
-    }
-  }
-
-  if (len >= this.minClusterSize_ || this.forced_) {
-    for (var j = 0; j < len; j++) {
-      if (this.featureClusterer_.setProperty_) {
-        this.features_[j].setProperty(DataLayerClusterer.CLUSTER_PROPERTY_NAME, true);
-      } else {
-        this.featureClusterer_.overrideStyle(this.features_[j], DataLayerClusterer.HIDDEN_FEATURE);
       }
     }
   }
