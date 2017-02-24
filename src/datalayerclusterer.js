@@ -729,7 +729,7 @@ FeatureCluster.prototype.addFeature = function (feature) {
     return false;
   }
 
-  var geom = feature.getGeometry(), centerPoint = this.featureClusterer_.featureCenter_(feature);
+  var geom = feature.getGeometry(), centerPoint = this.center_ || this.featureClusterer_.featureCenter_(feature);
 
   if (!this.center_) {
     this.center_ = centerPoint;
