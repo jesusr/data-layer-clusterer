@@ -1172,11 +1172,6 @@ DataLayerClusterer.MARKER_CLUSTER_IMAGE_EXTENSION_ = document.implementation.has
 DataLayerClusterer.prototype.init_ = function () {
   this.setupStyles_();
 
-  if (this.setProperty_) {
-    this._dataLayer.forEach(function (feature) {
-      feature.setProperty('in_cluster', true);
-    });
-  }
   if (this.map !== null) {
     this.setMap(this.map);
   }
