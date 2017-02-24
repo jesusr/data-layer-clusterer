@@ -99,6 +99,7 @@ function DataLayerClusterer (optOptions) {
   this.averageCenter_ = options.averageCenter !== undefined ? options.averageCenter : true;
   this._dataLayer = new google.maps.Data();
   this.firstIdle_ = true;
+  this.prevBounds_ = null;
   this.recolorSVG_ = typeof options.recolorSVG !== "undefined" && (typeof options.recolorSVG === "string" || options.recolorSVG instanceof String || options.recolorSVG === false) ? options.recolorSVG : 'g:first-child';
   this.baseSVG_ = null;
   
@@ -231,6 +232,10 @@ DataLayerClusterer.prototype.redraw = function () {
       oldClusters[i].remove();
     }
   });
+
+  if (this.map_) {
+    this.prevBounds_ = this.map_.getBounds();
+  }
 };
 
 
@@ -594,16 +599,17 @@ DataLayerClusterer.prototype.onAdd = function () {
     // Add the map event listeners
     var self = this;
     this._zoomchanged = google.maps.event.addListener(this.map_, 'zoom_changed', function () {
-      var zoom = self.map_.getZoom();
-
-      if (self.prevZoom_ !== zoom) {
+      var zoom = self.map_.getZoom(),
+          nothingChanged = (self.prevBounds_ && self.prevBounds_.equals(self.map_.getBounds()));
+      if (self.prevZoom_ !== zoom && nothingChanged !== true) {
         self.prevZoom_ = zoom;
         self.resetViewport();
       }
     });
 
     this._idle = google.maps.event.addListener(this.map_, 'idle', function () {
-      if (!self.firstIdle_) {
+      var nothingChanged = (self.map_ && self.prevZoom_ && self.prevZoom_ === self.map_.getZoom() && self.prevBounds_ && self.prevBounds_.equals(self.map_.getBounds()));
+      if (!self.firstIdle_ && nothingChanged !== true) {
         self.redraw();
       }
       self.firstIdle_ = false;
